@@ -15,7 +15,7 @@ MagicLinPwn is a powerful and automated Linux privilege escalation script design
 - **User and Group Information**:
   - Displays the current user, UID, GID, primary group, and group memberships with line wrapping and highlighting for critical groups (e.g., `wheel`, `sudo`, `docker`, `lxd`).
 - **Sudo Privileges Check**:
-  - Checks if `sudo` is installed and if the user can execute `sudo` commands without a password.
+  - Checks if `sudo` is installed, displays the sudo version and if the user can execute `sudo` commands without a password.
   - Highlights critical configurations such as `ALL`, `NOPASSWD`, and `SETENV`.
 - **SUID Binary Check**:
   - Finds and lists all binaries with the SUID bit set.
