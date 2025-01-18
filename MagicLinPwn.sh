@@ -84,12 +84,12 @@ user_info() {
 # Function to check and highlight sudo permissions
 sudo_check() {
     echo -e "\n\n\e[1;34m[+] Checking Sudo Privileges\e[0m"
-    echo -e "\e[1;32m-------------------------------------\e[0m"
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
     
     # Check if the user can run `sudo -l` without a password
     sudo_output=$(sudo -n -l 2>/dev/null)
     if [ $? -eq 0 ]; then
-        echo -e "\e[1;33m[!] User can run the following \e[1;31msudo\e[0m commands without a password:\e[0m"
+        echo -e "\e[1;33m[!] User can run the following \e[1;31msudo\e[0m \e[1;33mcommands without a password:\e[0m"
 
         # Process the output line by line and highlight critical elements
         while IFS= read -r line; do
@@ -108,7 +108,7 @@ sudo_check() {
         echo -e "\e[1;31m[-] User cannot run sudo commands without a password.\e[0m"
     fi
 
-    echo -e "\e[1;32m-------------------------------------\e[0m"
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
 
 # display ascii art
