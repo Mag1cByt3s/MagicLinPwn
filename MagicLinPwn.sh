@@ -266,6 +266,36 @@ cron_check() {
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
 
+capabilities_check() {
+    echo -e "\n\n\e[1;34m[+] Checking Capabilities\e[0m"
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+
+    # Timeout duration (in seconds)
+    timeout_duration=15
+
+    # Find files with capabilities using a timeout
+    capabilities=$(timeout "$timeout_duration" getcap -r / 2>/dev/null)
+
+    # Check if the timeout occurred
+    if [ $? -eq 124 ]; then
+        echo -e "\e[1;31m[-] Capabilities check timed out after $timeout_duration seconds. Skipping...\e[0m"
+    elif [ -z "$capabilities" ]; then
+        echo -e "    \e[1;31mNo files with capabilities found.\e[0m"
+    else
+        echo -e "\e[1;33m[!] Files and their Capabilities:\e[0m"
+        while IFS= read -r line; do
+            # Highlight common dangerous capabilities
+            if echo "$line" | grep -qE "(cap_setuid|cap_setgid|cap_dac_override|cap_net_admin|cap_net_raw)"; then
+                echo -e "    \e[1;31m$line\e[0m (Potentially dangerous)"
+            else
+                echo -e "    $line"
+            fi
+        done <<< "$capabilities"
+    fi
+
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+}
+
 # display ascii art
 ascii_art
 
@@ -289,3 +319,6 @@ sgid_check
 
 # check for cronjobs
 cron_check
+
+# check for files with capabilities
+capabilities_check
