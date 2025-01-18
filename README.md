@@ -25,6 +25,12 @@ MagicLinPwn is a powerful and automated Linux privilege escalation script design
   - Finds and lists all binaries with the SGID bit set.
   - Highlights potentially dangerous binaries (e.g., `mail`, `write`, `wall`).
   - Includes a timeout mechanism to skip the check if it takes too long.
+- **Cron Job Analysis**:
+  - **System-Wide Cron Jobs**: Lists cron jobs from `/etc/cron.d` and their contents.
+  - **User-Specific Cron Jobs**: Checks the current user’s crontab for entries.
+  - **/etc/crontab Analysis**: Displays the contents of `/etc/crontab` and checks if it is writable.
+  - **Writable Cron Files**: Identifies writable cron files across `/etc/cron*` directories and highlights potential security risks.
+
 
 <br>
 

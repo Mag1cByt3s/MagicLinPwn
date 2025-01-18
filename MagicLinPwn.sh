@@ -202,6 +202,70 @@ sgid_check() {
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
 
+# check for cronjobs
+cron_check() {
+    echo -e "\n\n\e[1;34m[+] Checking Cron Jobs\e[0m"
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+
+    # Check /etc/crontab
+    echo -e "\e[1;33m[!] /etc/crontab:\e[0m"
+    if [ -f /etc/crontab ]; then
+        echo -e "    \e[1;33mContents of /etc/crontab:\e[0m"
+        cat /etc/crontab | sed 's/^/        /'
+        
+        # Check if /etc/crontab is writable
+        if [ -w /etc/crontab ]; then
+            echo -e "\e[1;31m[!] /etc/crontab is writable! Potential security risk.\e[0m"
+        else
+            echo -e "    \e[1;32m/etc/crontab is not writable.\e[0m"
+        fi
+    else
+        echo -e "    \e[1;31m/etc/crontab does not exist.\e[0m"
+    fi
+
+    # Check system-wide cron jobs
+    echo -e "\n\e[1;33m[!] System-Wide Cron Jobs:\e[0m"
+    if [ -d /etc/cron.d ]; then
+        cron_files=$(ls /etc/cron.d 2>/dev/null)
+        if [ -z "$cron_files" ]; then
+            echo -e "    \e[1;31mNo cron jobs found in /etc/cron.d\e[0m"
+        else
+            for cron_file in $cron_files; do
+                echo -e "    /etc/cron.d/$cron_file"
+                cat /etc/cron.d/"$cron_file" | sed 's/^/        /'
+            done
+        fi
+    else
+        echo -e "    \e[1;31m/etc/cron.d directory not found.\e[0m"
+    fi
+
+    # Check user-specific cron jobs
+    echo -e "\n\e[1;33m[!] User-Specific Cron Jobs:\e[0m"
+    if command -v crontab >/dev/null 2>&1; then
+        user_cron=$(crontab -l 2>/dev/null)
+        if [ $? -eq 0 ]; then
+            echo -e "    \e[1;33mCrontab entries for $(whoami):\e[0m"
+            echo "$user_cron" | sed 's/^/        /'
+        else
+            echo -e "    \e[1;31mNo crontab entries for $(whoami).\e[0m"
+        fi
+    else
+        echo -e "    \e[1;31mCrontab is not installed or not available for this user.\e[0m"
+    fi
+
+    # Check for writable cron files
+    echo -e "\n\e[1;33m[!] Writable Cron Files:\e[0m"
+    writable_cron_files=$(find /etc/cron* -type f -writable 2>/dev/null)
+    if [ -z "$writable_cron_files" ]; then
+        echo -e "    \e[1;31mNo writable cron files found.\e[0m"
+    else
+        echo -e "\e[1;31m[!] Writable cron files detected! Potential security risk:\e[0m"
+        echo "$writable_cron_files" | sed 's/^/        /'
+    fi
+
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+}
+
 # display ascii art
 ascii_art
 
@@ -222,3 +286,6 @@ suid_check
 
 # check SGID binaries
 sgid_check
+
+# check for cronjobs
+cron_check
