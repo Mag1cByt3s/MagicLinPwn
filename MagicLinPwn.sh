@@ -81,6 +81,36 @@ user_info() {
     echo -e "\n\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
 
+# Function to check and highlight sudo permissions
+sudo_check() {
+    echo -e "\n\n\e[1;34m[+] Checking Sudo Privileges\e[0m"
+    echo -e "\e[1;32m-------------------------------------\e[0m"
+    
+    # Check if the user can run `sudo -l` without a password
+    sudo_output=$(sudo -n -l 2>/dev/null)
+    if [ $? -eq 0 ]; then
+        echo -e "\e[1;33m[!] User can run the following \e[1;31msudo\e[0m commands without a password:\e[0m"
+
+        # Process the output line by line and highlight critical elements
+        while IFS= read -r line; do
+            # Highlight critical elements using printf with proper ANSI codes
+            line=$(echo "$line" | sed \
+                -e 's/ALL/\x1b[1;31mALL\x1b[0m/g' \
+                -e 's/NOPASSWD/\x1b[1;31mNOPASSWD\x1b[0m/g' \
+                -e 's/SETENV/\x1b[1;33mSETENV\x1b[0m/g' \
+                -e 's/env_keep/\x1b[1;31menv_keep\x1b[0m/g' \
+                -e 's/passwd_timeout=0/\x1b[1;35mpasswd_timeout=0\x1b[0m/g')
+            
+            # Print the highlighted line with proper indentation
+            printf "    %b\n" "$line"
+        done <<< "$sudo_output"
+    else
+        echo -e "\e[1;31m[-] User cannot run sudo commands without a password.\e[0m"
+    fi
+
+    echo -e "\e[1;32m-------------------------------------\e[0m"
+}
+
 # display ascii art
 ascii_art
 
@@ -92,3 +122,6 @@ os_info
 
 # enum current user and group info
 user_info
+
+# enum sudo check
+sudo_check
