@@ -118,6 +118,44 @@ sudo_check() {
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
 
+# check SUID binaries
+suid_check() {
+    echo -e "\n\n\e[1;34m[+] Checking SUID Binaries\e[0m"
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+
+    # Timeout for the SUID check (in seconds)
+    timeout_duration=15
+
+    # Find all SUID binaries with a timeout
+    suid_binaries=$(timeout "$timeout_duration" find / -perm -4000 2>/dev/null)
+    
+    # Check if the timeout occurred
+    if [ $? -eq 124 ]; then
+        echo -e "\e[1;31m[-] SUID check timed out after $timeout_duration seconds. Skipping...\e[0m"
+    elif [ -z "$suid_binaries" ]; then
+        echo -e "\e[1;31m[-] No SUID binaries found.\e[0m"
+    else
+        echo -e "\e[1;33m[!] SUID binaries found:\e[0m"
+
+        # Highlight common dangerous SUID binaries
+        while IFS= read -r binary; do
+            case "$binary" in
+                *bash|*sh|*perl|*python|*ruby|*lua)
+                    echo -e "    \e[1;31m$binary\e[0m (Potentially dangerous: Interpreter)"
+                    ;;
+                */usr/bin/passwd|*/usr/bin/chsh|*/usr/bin/chfn|*/usr/bin/newgrp)
+                    echo -e "    \e[1;33m$binary\e[0m (Common, check for misconfigurations)"
+                    ;;
+                *)
+                    echo -e "    $binary"
+                    ;;
+            esac
+        done <<< "$suid_binaries"
+    fi
+
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+}
+
 # display ascii art
 ascii_art
 
@@ -132,3 +170,6 @@ user_info
 
 # enum sudo check
 sudo_check
+
+# check SUID binaries
+suid_check
