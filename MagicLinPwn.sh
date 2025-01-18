@@ -163,6 +163,41 @@ suid_check() {
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
 
+# Check SGID binaries
+sgid_check() {
+    echo -e "\n\n\e[1;34m[+] Checking SGID Binaries\e[0m"
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+
+    # Timeout for the SGID check (in seconds)
+    timeout_duration=15
+
+    # Find all SGID binaries with a timeout
+    sgid_binaries=$(timeout "$timeout_duration" find / -perm -2000 2>/dev/null)
+    
+    # Check if the timeout occurred
+    if [ $? -eq 124 ]; then
+        echo -e "\e[1;31m[-] SGID check timed out after $timeout_duration seconds. Skipping...\e[0m"
+    elif [ -z "$sgid_binaries" ]; then
+        echo -e "\e[1;31m[-] No SGID binaries found.\e[0m"
+    else
+        echo -e "\e[1;33m[!] SGID binaries found:\e[0m"
+
+        # Highlight common dangerous SGID binaries
+        while IFS= read -r binary; do
+            case "$binary" in
+                *mail|*write|*wall|*newgrp)
+                    echo -e "    \e[1;31m$binary\e[0m (Potentially dangerous: Group access)"
+                    ;;
+                *)
+                    echo -e "    $binary"
+                    ;;
+            esac
+        done <<< "$sgid_binaries"
+    fi
+
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+}
+
 # display ascii art
 ascii_art
 
@@ -180,3 +215,6 @@ sudo_check
 
 # check SUID binaries
 suid_check
+
+# check SGID binaries
+sgid_check
