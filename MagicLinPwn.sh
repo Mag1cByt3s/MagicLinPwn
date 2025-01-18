@@ -134,7 +134,7 @@ suid_check() {
     timeout_duration=15
 
     # Find all SUID binaries with a timeout
-    suid_binaries=$(timeout "$timeout_duration" find / -perm -4000 2>/dev/null)
+    suid_binaries=$(timeout "$timeout_duration" find / -type f -perm -4000 2>/dev/null)
     
     # Check if the timeout occurred
     if [ $? -eq 124 ]; then
@@ -172,7 +172,7 @@ sgid_check() {
     timeout_duration=15
 
     # Find all SGID binaries with a timeout
-    sgid_binaries=$(timeout "$timeout_duration" find / -perm -2000 2>/dev/null)
+    sgid_binaries=$(timeout "$timeout_duration" find / -type f -perm -2000 2>/dev/null)
     
     # Check if the timeout occurred
     if [ $? -eq 124 ]; then
