@@ -100,6 +100,10 @@ sudo_check() {
         return
     fi
 
+    # Get and display sudo version number
+    sudo_version=$(sudo --version | head -n 1 | awk '{print $3}')
+    echo -e "\e[1;33m[!] Sudo Version:\e[0m $sudo_version"
+
     # Check if the user can run `sudo -l` without a password
     sudo_output=$(sudo -n -l 2>/dev/null)
     if [ $? -eq 0 ]; then
