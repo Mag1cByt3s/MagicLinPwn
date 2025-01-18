@@ -322,8 +322,6 @@ check_writable_critical_files() {
             else
                 echo -e "    $file is not writable."
             fi
-        else
-            echo -e "    $file does not exist."
         fi
     done
 
