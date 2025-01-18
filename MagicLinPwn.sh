@@ -19,7 +19,7 @@ EOF
 highlight_groups() {
     local group=$1
     case "$group" in
-        wheel|docker|lxd|sudo)
+        wheel|docker|lxd|sudo|libvirtd|kvm|disk|www-data|apache|nginx|shadow|root|staff|backup|operator)
             echo -e "\e[1;31m$group\e[0m"  # Highlight in bold red
             ;;
         *)
