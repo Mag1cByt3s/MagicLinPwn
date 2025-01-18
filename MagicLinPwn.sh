@@ -28,6 +28,33 @@ highlight_groups() {
     esac
 }
 
+# Function to display OS information
+os_info() {
+    echo -e "\n\n\e[1;34m[+] Gathering OS Information\e[0m"
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+    
+    # Kernel version
+    echo -e "\e[1;33mKernel Version:\e[0m $(uname -r)"
+    
+    # Distro name and version
+    if [ -f /etc/os-release ]; then
+        source /etc/os-release
+        echo -e "\e[1;33mDistro Name:\e[0m $NAME"
+        echo -e "\e[1;33mDistro Version:\e[0m $VERSION"
+    else
+        echo -e "\e[1;33mDistro Name:\e[0m Unknown"
+        echo -e "\e[1;33mDistro Version:\e[0m Unknown"
+    fi
+    
+    # Architecture
+    echo -e "\e[1;33mArchitecture:\e[0m $(uname -m)"
+    
+    # Hostname
+    echo -e "\e[1;33mHostname:\e[0m $(hostname)"
+    
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+}
+
 # Function to display current user and group memberships
 user_info() {
     echo -e "\n\n\e[1;34m[+] Gathering User Information\e[0m"
@@ -59,6 +86,9 @@ ascii_art
 
 # Add some spacing
 echo -e "\n"
+
+# Display OS information
+os_info
 
 # enum current user and group info
 user_info
