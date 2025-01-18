@@ -92,7 +92,14 @@ user_info() {
 sudo_check() {
     echo -e "\n\n\e[1;34m[+] Checking Sudo Privileges\e[0m"
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
-    
+
+    # Check if sudo is installed
+    if ! command -v sudo >/dev/null 2>&1; then
+        echo -e "\e[1;31m[-] Sudo is not installed on this system.\e[0m"
+        echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+        return
+    fi
+
     # Check if the user can run `sudo -l` without a password
     sudo_output=$(sudo -n -l 2>/dev/null)
     if [ $? -eq 0 ]; then
