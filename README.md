@@ -34,6 +34,10 @@ MagicLinPwn is a powerful and automated Linux privilege escalation script design
   - Finds and lists all files with Linux capabilities.
   - Highlights potentially dangerous capabilities (e.g., `cap_setuid`, `cap_net_raw`, `cap_dac_override`).
   - Includes a timeout mechanism to skip the check if it takes too long.
+- **Writable Critical Files Check**:
+  - Checks if critical system files (e.g., `/etc/passwd`, `/etc/shadow`, `/etc/sudoers`) are writable.
+  - Highlights writable files as potential security risks.
+  - Provides clear feedback on the existence and writability of each critical file.
 
 <br>
 

@@ -266,6 +266,7 @@ cron_check() {
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
 
+# check file capabilities
 capabilities_check() {
     echo -e "\n\n\e[1;34m[+] Checking Capabilities\e[0m"
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
@@ -291,6 +292,43 @@ capabilities_check() {
                 echo -e "    $line"
             fi
         done <<< "$capabilities"
+    fi
+
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+}
+
+# check if we can write some critical files
+check_writable_critical_files() {
+    echo -e "\n\n\e[1;34m[+] Checking Writable Critical Files\e[0m"
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+
+    # List of critical files to check
+    critical_files=(
+        "/etc/passwd"
+        "/etc/shadow"
+        "/etc/sudoers"
+        "/etc/cron.d"
+        "/etc/crontab"
+        "/etc/ssh/sshd_config"
+    )
+
+    writable_found=0
+
+    for file in "${critical_files[@]}"; do
+        if [ -e "$file" ]; then
+            if [ -w "$file" ]; then
+                echo -e "\e[1;31m[!] Writable: $file (Potential Security Risk)\e[0m"
+                writable_found=1
+            else
+                echo -e "    $file is not writable."
+            fi
+        else
+            echo -e "    $file does not exist."
+        fi
+    done
+
+    if [ $writable_found -eq 0 ]; then
+        echo -e "\e[1;32m[+] No writable critical files detected.\e[0m"
     fi
 
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
@@ -340,3 +378,9 @@ echo -e "\n"
 
 # check for files with capabilities
 capabilities_check
+
+# Add some spacing
+echo -e "\n"
+
+# check if we can write some critical files
+check_writable_critical_files
