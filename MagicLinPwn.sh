@@ -2,6 +2,8 @@
 
 # Function to print ASCII art
 ascii_art() {
+    # Set the purple color for the ASCII art
+    echo -e "\e[1;35m"
 cat << "EOF"
   __  __             _      _     _       ____                 
  |  \/  | __ _  __ _(_) ___| |   (_)_ __ |  _ \__      ___ __  
@@ -9,10 +11,15 @@ cat << "EOF"
  | |  | | (_| | (_| | | (__| |___| | | | |  __/ \ V  V /| | | |
  |_|  |_|\__,_|\__, |_|\___|_____|_|_| |_|_|     \_/\_/ |_| |_|
                |___/                                           
-                                                 
-     Linux Privilege Escalation Script
-             By @Mag1cByt3s
+                                                                 
 EOF
+    # Reset the color for the script title
+    echo -e "\e[0m"
+    echo -e "             Linux Privilege Escalation Script"
+
+    # Add the colored author and GitHub link
+    echo -e "                    By \e[1;35m@Mag1cByt3s\e[0m"
+    echo -e "        (https://github.com/Mag1cByt3s/MagicLinPwn)"
 }
 
 # Function to highlight specific groups
