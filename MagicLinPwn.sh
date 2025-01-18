@@ -299,7 +299,7 @@ capabilities_check() {
 
 # check if we can write some critical files
 check_writable_critical_files() {
-    echo -e "\n\n\e[1;34m[+] Checking Writable Critical Files\e[0m"
+    echo -e "\n\n\e[1;34m[+] Checking Writable Critical Files and Directories\e[0m"
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 
     # List of critical files and directories to check
@@ -313,7 +313,8 @@ check_writable_critical_files() {
         "/etc/ssh/sshd_config"
     )
 
-    writable_found=0
+    writable_files_found=0
+    writable_directories_found=0
 
     for file in "${critical_files[@]}"; do
         if [ -e "$file" ]; then
@@ -321,30 +322,33 @@ check_writable_critical_files() {
                 # Check if the directory itself is writable
                 if [ -w "$file" ]; then
                     echo -e "\e[1;31m[!] Writable Directory: $file (Potential Security Risk)\e[0m"
-                    writable_found=1
+                    writable_directories_found=1
                 fi
                 # Check for writable files inside the directory
                 writable_files=$(find "$file" -type f -writable 2>/dev/null)
                 if [ -n "$writable_files" ]; then
                     for writable_file in $writable_files; do
                         echo -e "\e[1;31m[!] Writable: $writable_file (Potential Security Risk)\e[0m"
-                        writable_found=1
+                        writable_files_found=1
                     done
                 fi
             else
                 # Check if the file is writable
                 if [ -w "$file" ]; then
                     echo -e "\e[1;31m[!] Writable: $file (Potential Security Risk)\e[0m"
-                    writable_found=1
-                else
-                    echo -e "    $file is not writable."
+                    writable_files_found=1
                 fi
             fi
         fi
     done
 
-    if [ $writable_found -eq 0 ]; then
+    # Summary messages
+    if [ $writable_files_found -eq 0 ]; then
         echo -e "\e[1;32m[+] No writable critical files detected.\e[0m"
+    fi
+
+    if [ $writable_directories_found -eq 0 ]; then
+        echo -e "\e[1;32m[+] No writable critical directories detected.\e[0m"
     fi
 
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
