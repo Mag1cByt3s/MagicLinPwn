@@ -302,11 +302,12 @@ check_writable_critical_files() {
     echo -e "\n\n\e[1;34m[+] Checking Writable Critical Files\e[0m"
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 
-    # List of critical files to check
+    # List of critical files and directories to check
     critical_files=(
         "/etc/passwd"
         "/etc/shadow"
         "/etc/sudoers"
+        "/etc/sudoers.d"
         "/etc/cron.d"
         "/etc/crontab"
         "/etc/ssh/sshd_config"
@@ -316,11 +317,28 @@ check_writable_critical_files() {
 
     for file in "${critical_files[@]}"; do
         if [ -e "$file" ]; then
-            if [ -w "$file" ]; then
-                echo -e "\e[1;31m[!] Writable: $file (Potential Security Risk)\e[0m"
-                writable_found=1
+            if [ -d "$file" ]; then
+                # Check if the directory itself is writable
+                if [ -w "$file" ]; then
+                    echo -e "\e[1;31m[!] Writable Directory: $file (Potential Security Risk)\e[0m"
+                    writable_found=1
+                fi
+                # Check for writable files inside the directory
+                writable_files=$(find "$file" -type f -writable 2>/dev/null)
+                if [ -n "$writable_files" ]; then
+                    for writable_file in $writable_files; do
+                        echo -e "\e[1;31m[!] Writable: $writable_file (Potential Security Risk)\e[0m"
+                        writable_found=1
+                    done
+                fi
             else
-                echo -e "    $file is not writable."
+                # Check if the file is writable
+                if [ -w "$file" ]; then
+                    echo -e "\e[1;31m[!] Writable: $file (Potential Security Risk)\e[0m"
+                    writable_found=1
+                else
+                    echo -e "    $file is not writable."
+                fi
             fi
         fi
     done
