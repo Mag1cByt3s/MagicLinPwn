@@ -305,20 +305,38 @@ echo -e "\n"
 # Display OS information
 os_info
 
+# Add some spacing
+echo -e "\n"
+
 # enum current user and group info
 user_info
+
+# Add some spacing
+echo -e "\n"
 
 # enum sudo check
 sudo_check
 
+# Add some spacing
+echo -e "\n"
+
 # check SUID binaries
 suid_check
+
+# Add some spacing
+echo -e "\n"
 
 # check SGID binaries
 sgid_check
 
+# Add some spacing
+echo -e "\n"
+
 # check for cronjobs
 cron_check
+
+# Add some spacing
+echo -e "\n"
 
 # check for files with capabilities
 capabilities_check
