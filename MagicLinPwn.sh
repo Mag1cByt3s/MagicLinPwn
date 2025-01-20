@@ -22,6 +22,13 @@ EOF
     echo -e "        (https://github.com/Mag1cByt3s/MagicLinPwn)"
 }
 
+check_if_root() {
+    if [ "$(id -u)" -eq 0 ]; then
+        echo -e "\e[1;31m[-] You are already running as root. Exiting...\e[0m"
+        exit 0
+    fi
+}
+
 # Function to highlight specific groups
 highlight_groups() {
     local group=$1
@@ -516,6 +523,9 @@ check_writable_by_user() {
 
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
+
+# Check if running as root
+check_if_root
 
 # Clear the screen for a clean start
 clear
