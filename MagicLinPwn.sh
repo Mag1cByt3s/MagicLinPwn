@@ -354,6 +354,7 @@ check_writable_critical_files() {
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
 
+# search for potentially interesting files
 search_interesting_files() {
     echo -e "\n\n\e[1;34m[+] Searching for Potentially Interesting Files\e[0m"
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
@@ -370,6 +371,23 @@ search_interesting_files() {
             echo -e "    \e[1;31mNo files found with this extension.\e[0m"
         else
             echo "$results" | sed 's/^/    /'
+        fi
+    done
+
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+}
+
+# search for potentially sensitive config files containing credentials
+search_sensitive_content() {
+    echo -e "\n\n\e[1;34m[+] Searching for Sensitive Content in Config Files\e[0m"
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+
+    # Find .cnf, .conf, and .config files and search for sensitive content
+    find / \( -name "*.cnf" -o -name "*.conf" -o -name "*.config" \) 2>/dev/null | grep -v "doc\|lib" | while read -r file; do
+        matches=$(grep --color=always "password\|pass" "$file" 2>/dev/null | grep -v "\#")
+        if [ -n "$matches" ]; then
+            echo -e "\n\e[1;33m[!] File:\e[0m $file"
+            echo "$matches" | sed 's/^/    /'
         fi
     done
 
@@ -432,3 +450,6 @@ echo -e "\n"
 
 # search for potentially interesting files
 search_interesting_files
+
+# search for potentially sensitive config files containing credentials
+search_sensitive_content

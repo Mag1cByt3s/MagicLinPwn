@@ -44,6 +44,11 @@ MagicLinPwn is a powerful and automated Linux privilege escalation script design
   - Excludes common irrelevant directories like `lib`, `fonts`, `share`, and `core`.
   - Displays results clearly for each file extension.
   - Handles cases where no files are found with a clean message.
+- **Sensitive Content Search**:
+  - Searches `.cnf`, `.conf`, and `.config` files for sensitive keywords like `password` or `pass`.
+  - Excludes unnecessary directories (e.g., `doc`, `lib`) to reduce noise.
+  - Highlights matches for better readability.
+  - Only displays filenames and content when matches are found.
 
 <br>
 
