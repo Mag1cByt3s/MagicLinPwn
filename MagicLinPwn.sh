@@ -399,8 +399,8 @@ search_ssh_private_keys() {
     echo -e "\n\n\e[1;34m[+] Searching for SSH Private Keys\e[0m"
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 
-    # Get the script's directory to exclude it
-    script_dir=$(dirname "$(realpath "$0")")
+    # Get the script's absolute path to exclude it
+    script_path=$(realpath "$0")
 
     # Target common locations for SSH private keys
     target_dirs=(
@@ -413,7 +413,7 @@ search_ssh_private_keys() {
 
     for dir in "${target_dirs[@]}"; do
         if [ -d "$dir" ]; then
-            results=$(grep -rnw --exclude-dir="$script_dir" "PRIVATE KEY" "$dir" 2>/dev/null | grep ":1")
+            results=$(grep -rnw --exclude="$script_path" "PRIVATE KEY" "$dir" 2>/dev/null | grep ":1")
             if [ -n "$results" ]; then
                 echo -e "\e[1;33m[!] SSH Private Keys Found in $dir:\e[0m"
                 echo "$results" | sed 's/^/    /'
