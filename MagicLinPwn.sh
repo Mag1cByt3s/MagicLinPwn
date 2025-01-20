@@ -593,7 +593,7 @@ search_ssh_private_keys
 echo -e "\n"
 
 # search and dump shell history files
-dump_history_files()
+dump_history_files
 
 # Add some spacing
 echo -e "\n"
