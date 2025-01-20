@@ -61,6 +61,13 @@ MagicLinPwn is a powerful and automated Linux privilege escalation script design
   - Dumps the contents of any accessible history files for analysis.
   - Highlights the file paths and their contents, providing insights into commands executed by users.
   - Clearly indicates if no history files are found or accessible.
+- **Systemd-Related Privilege Escalation Checks**:
+  - Identifies writable `.service` files in common systemd directories (e.g., `/etc/systemd/system`, `/lib/systemd/system`).
+  - Detects writable binaries executed by services via the `ExecStart=` directive in `.service` files.
+  - Searches for writable folders in systemd `UnitPath`, which could allow malicious file placements.
+  - Checks for writable `.timer` files, which could be exploited to schedule malicious tasks.
+  - Includes timeout mechanisms to ensure efficient scans and prevent prolonged execution.
+  - Highlights writable files, binaries, directories, and timers as potential security risks.
 - **Writable Files and Directories Check**:
   - Searches for files and directories writable by the current user.
   - Excludes system-critical paths like `/proc`, `/sys`, `/tmp`, and `/run` to avoid unnecessary output.

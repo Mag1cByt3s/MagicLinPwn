@@ -479,6 +479,73 @@ dump_history_files() {
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
 
+# check writable systemd related files
+check_systemd_writable() {
+    echo -e "\n\n\e[1;34m[+] Checking systemd-related Privilege Escalation Vectors\e[0m"
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+
+    # Timeout duration
+    timeout_duration=30
+
+    # Check writable .service files
+    echo -e "\e[1;33m[!] Searching for Writable .service Files...\e[0m"
+    writable_services=$(timeout "$timeout_duration" find /etc/systemd/system /lib/systemd/system /usr/lib/systemd/system -type f -name "*.service" -writable 2>/dev/null)
+    if [ $? -eq 124 ]; then
+        echo -e "\e[1;31m[-] Writable .service file check timed out.\e[0m"
+    elif [ -z "$writable_services" ]; then
+        echo -e "\e[1;31m[-] No writable .service files found.\e[0m"
+    else
+        echo -e "\e[1;33m[!] Writable .service Files Found:\e[0m"
+        echo "$writable_services" | sed 's/^/    /'
+    fi
+
+    # Check writable binaries executed by services
+    echo -e "\n\e[1;33m[!] Searching for Writable Binaries Executed by Services...\e[0m"
+    writable_binaries=()
+    for service_file in $(find /etc/systemd/system /lib/systemd/system /usr/lib/systemd/system -type f -name "*.service" 2>/dev/null); do
+        binary=$(grep -E "ExecStart=" "$service_file" | sed 's/^.*=//' | awk '{print $1}' | xargs realpath 2>/dev/null)
+        if [ -n "$binary" ] && [ -w "$binary" ]; then
+            writable_binaries+=("$binary (from $service_file)")
+        fi
+    done
+    if [ ${#writable_binaries[@]} -eq 0 ]; then
+        echo -e "\e[1;31m[-] No writable binaries executed by services found.\e[0m"
+    else
+        echo -e "\e[1;33m[!] Writable Binaries Executed by Services Found:\e[0m"
+        printf "    %s\n" "${writable_binaries[@]}"
+    fi
+
+    # Check writable folders in systemd PATH
+    echo -e "\n\e[1;33m[!] Searching for Writable Folders in systemd PATH...\e[0m"
+    systemd_paths=$(systemctl show --property=UnitPath | cut -d= -f2 | tr ':' '\n')
+    writable_dirs=()
+    for dir in $systemd_paths; do
+        if [ -d "$dir" ] && [ -w "$dir" ]; then
+            writable_dirs+=("$dir")
+        fi
+    done
+    if [ ${#writable_dirs[@]} -eq 0 ]; then
+        echo -e "\e[1;31m[-] No writable folders in systemd PATH found.\e[0m"
+    else
+        echo -e "\e[1;33m[!] Writable Folders in systemd PATH Found:\e[0m"
+        printf "    %s\n" "${writable_dirs[@]}"
+    fi
+
+    # Check writable timers
+    echo -e "\n\e[1;33m[!] Searching for Writable Timers...\e[0m"
+    writable_timers=$(timeout "$timeout_duration" find /etc/systemd/system /lib/systemd/system /usr/lib/systemd/system -type f -name "*.timer" -writable 2>/dev/null)
+    if [ $? -eq 124 ]; then
+        echo -e "\e[1;31m[-] Writable timer check timed out.\e[0m"
+    elif [ -z "$writable_timers" ]; then
+        echo -e "\e[1;31m[-] No writable timers found.\e[0m"
+    else
+        echo -e "\e[1;33m[!] Writable Timers Found:\e[0m"
+        echo "$writable_timers" | sed 's/^/    /'
+    fi
+
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+}
+
 # check for writable files and folders
 check_writable_by_user() {
     echo -e "\n\n\e[1;34m[+] Checking Files and Directories Writable by Current User\e[0m"
@@ -604,6 +671,12 @@ echo -e "\n"
 
 # search and dump shell history files
 dump_history_files
+
+# Add some spacing
+echo -e "\n"
+
+# check writable systemd related files
+check_systemd_writable()
 
 # Add some spacing
 echo -e "\n"
