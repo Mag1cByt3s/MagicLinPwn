@@ -399,14 +399,28 @@ search_ssh_private_keys() {
     echo -e "\n\n\e[1;34m[+] Searching for SSH Private Keys\e[0m"
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 
-    # Search for files containing "PRIVATE KEY" and exclude irrelevant errors
-    results=$(grep -rnw "PRIVATE KEY" /* 2>/dev/null | grep ":1")
+    # Target common locations for SSH private keys
+    target_dirs=(
+        "/root"
+        "/home"
+        "/etc/ssh"
+    )
 
-    if [ -z "$results" ]; then
-        echo -e "\e[1;31m[-] No SSH private keys found.\e[0m"
-    else
-        echo -e "\e[1;33m[!] SSH Private Keys Found:\e[0m"
-        echo "$results" | sed 's/^/    /'
+    results_found=0
+
+    for dir in "${target_dirs[@]}"; do
+        if [ -d "$dir" ]; then
+            results=$(grep -rnw "PRIVATE KEY" "$dir" 2>/dev/null | grep ":1")
+            if [ -n "$results" ]; then
+                echo -e "\e[1;33m[!] SSH Private Keys Found in $dir:\e[0m"
+                echo "$results" | sed 's/^/    /'
+                results_found=1
+            fi
+        fi
+    done
+
+    if [ $results_found -eq 0 ]; then
+        echo -e "\e[1;31m[-] No SSH private keys found in common locations.\e[0m"
     fi
 
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
