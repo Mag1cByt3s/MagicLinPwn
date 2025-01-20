@@ -676,7 +676,7 @@ dump_history_files
 echo -e "\n"
 
 # check writable systemd related files
-check_systemd_writable()
+check_systemd_writable
 
 # Add some spacing
 echo -e "\n"
