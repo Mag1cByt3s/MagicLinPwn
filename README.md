@@ -54,6 +54,12 @@ MagicLinPwn is a powerful and automated Linux privilege escalation script design
   - Highlights private keys in the results for better visibility.
   - Filters out irrelevant matches, ensuring only valid keys are displayed.
   - Provides a clear message if no private keys are found.
+- **Writable Files and Directories Check**:
+  - Searches for files and directories writable by the current user.
+  - Excludes system-critical paths like `/proc`, `/sys`, `/tmp`, and `/run` to avoid unnecessary output.
+  - Displays both writable files and writable directories separately.
+  - Includes a timeout mechanism to prevent the scan from running indefinitely.
+  - Clearly indicates if no writable files or directories are found.
 
 <br>
 

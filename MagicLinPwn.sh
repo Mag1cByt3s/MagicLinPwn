@@ -431,6 +431,51 @@ search_ssh_private_keys() {
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
 
+# check for writable files and folders
+check_writable_by_user() {
+    echo -e "\n\n\e[1;34m[+] Checking Files and Directories Writable by Current User\e[0m"
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+
+    # Timeout for the check (in seconds)
+    timeout_duration=30
+
+    current_user=$(whoami)
+
+    echo -e "\e[1;33m[!] Searching for Files Writable by $current_user...\e[0m"
+    user_writable_files=$(timeout "$timeout_duration" find / -type f -writable \
+        ! -path "/proc/*" \
+        ! -path "/sys/*" \
+        ! -path "/tmp/*" \
+        ! -path "/run/*" 2>/dev/null)
+
+    if [ $? -eq 124 ]; then
+        echo -e "\e[1;31m[-] Writable file check timed out after $timeout_duration seconds. Skipping...\e[0m"
+    elif [ -z "$user_writable_files" ]; then
+        echo -e "\e[1;31m[-] No files writable by $current_user found.\e[0m"
+    else
+        echo -e "\e[1;33m[!] Files Writable by $current_user:\e[0m"
+        echo "$user_writable_files" | sed 's/^/    /'
+    fi
+
+    echo -e "\n\e[1;33m[!] Searching for Directories Writable by $current_user...\e[0m"
+    user_writable_dirs=$(timeout "$timeout_duration" find / -type d -writable \
+        ! -path "/proc/*" \
+        ! -path "/sys/*" \
+        ! -path "/tmp/*" \
+        ! -path "/run/*" 2>/dev/null)
+
+    if [ $? -eq 124 ]; then
+        echo -e "\e[1;31m[-] Writable directory check timed out after $timeout_duration seconds. Skipping...\e[0m"
+    elif [ -z "$user_writable_dirs" ]; then
+        echo -e "\e[1;31m[-] No directories writable by $current_user found.\e[0m"
+    else
+        echo -e "\e[1;33m[!] Directories Writable by $current_user:\e[0m"
+        echo "$user_writable_dirs" | sed 's/^/    /'
+    fi
+
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+}
+
 # Clear the screen for a clean start
 clear
 
@@ -491,8 +536,20 @@ echo -e "\n"
 # search for potentially interesting files
 search_interesting_files
 
+# Add some spacing
+echo -e "\n"
+
 # search for potentially sensitive config files containing credentials
 search_sensitive_content
 
+# Add some spacing
+echo -e "\n"
+
 # search for SSH private keys
 search_ssh_private_keys
+
+# Add some spacing
+echo -e "\n"
+
+# check for writable files and folders
+check_writable_by_user
