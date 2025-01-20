@@ -354,6 +354,28 @@ check_writable_critical_files() {
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
 
+search_interesting_files() {
+    echo -e "\n\n\e[1;34m[+] Searching for Potentially Interesting Files\e[0m"
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+
+    # List of file extensions to search for
+    file_extensions=".xls .xls* .xltx .csv .od* .doc .doc* .pdf .pot .pot* .pp* .key .conf .config .cnf"
+
+    # Iterate over extensions and search for files
+    for ext in $file_extensions; do
+        echo -e "\n\e[1;33m[!] File extension:\e[0m $ext"
+        results=$(find / -name "*$ext" 2>/dev/null | grep -v "lib\|fonts\|share\|core")
+        
+        if [ -z "$results" ]; then
+            echo -e "    \e[1;31mNo files found with this extension.\e[0m"
+        else
+            echo "$results" | sed 's/^/    /'
+        fi
+    done
+
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+}
+
 # display ascii art
 ascii_art
 
@@ -404,3 +426,9 @@ echo -e "\n"
 
 # check if we can write some critical files
 check_writable_critical_files
+
+# Add some spacing
+echo -e "\n"
+
+# search for potentially interesting files
+search_interesting_files

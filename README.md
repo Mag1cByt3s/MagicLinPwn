@@ -39,6 +39,11 @@ MagicLinPwn is a powerful and automated Linux privilege escalation script design
   - Checks critical directories (e.g., `/etc/sudoers.d`, `/etc/cron.d`) for write permissions and scans for writable files within them.
   - Highlights writable files and directories as potential security risks.
   - Provides clear summary messages when no writable files or directories are detected.
+- **Potentially Interesting Files Search**:
+  - Searches for files with potentially sensitive extensions (e.g., `.xls`, `.doc`, `.pdf`, `.conf`, `.key`).
+  - Excludes common irrelevant directories like `lib`, `fonts`, `share`, and `core`.
+  - Displays results clearly for each file extension.
+  - Handles cases where no files are found with a clean message.
 
 <br>
 
