@@ -429,6 +429,9 @@ search_ssh_private_keys() {
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
 
+# Clear the screen for a clean start
+clear
+
 # display ascii art
 ascii_art
 
