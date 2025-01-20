@@ -54,6 +54,11 @@ MagicLinPwn is a powerful and automated Linux privilege escalation script design
   - Highlights private keys in the results for better visibility.
   - Filters out irrelevant matches, ensuring only valid keys are displayed.
   - Provides a clear message if no private keys are found.
+- **Shell History File Dump**:
+  - Searches for commonly used shell history files (e.g., `.bash_history`, `.zsh_history`, `.ash_history`, etc.) in `/home` and `/root` directories.
+  - Dumps the contents of any accessible history files for analysis.
+  - Highlights the file paths and their contents, providing insights into commands executed by users.
+  - Clearly indicates if no history files are found or accessible.
 - **Writable Files and Directories Check**:
   - Searches for files and directories writable by the current user.
   - Excludes system-critical paths like `/proc`, `/sys`, `/tmp`, and `/run` to avoid unnecessary output.

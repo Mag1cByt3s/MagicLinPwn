@@ -431,6 +431,47 @@ search_ssh_private_keys() {
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
 
+# search and dump shell history files
+dump_history_files() {
+    echo -e "\n\n\e[1;34m[+] Searching for and Dumping Shell History Files\e[0m"
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+
+    # Common history files to check
+    history_files=(
+        ".bash_history"
+        ".zsh_history"
+        ".ash_history"
+        ".history"
+        ".csh_history"
+        ".ksh_history"
+        ".tcsh_history"
+        ".fish_history"
+    )
+
+    # Search for history files in common locations
+    home_dirs=$(find /home /root -type d 2>/dev/null)
+    found=0
+
+    for home in $home_dirs; do
+        for file in "${history_files[@]}"; do
+            target="$home/$file"
+            if [ -f "$target" ]; then
+                echo -e "\e[1;33m[!] History File Found:\e[0m $target"
+                echo -e "\e[1;33mContents:\e[0m"
+                cat "$target" | sed 's/^/    /'
+                echo
+                found=1
+            fi
+        done
+    done
+
+    if [ $found -eq 0 ]; then
+        echo -e "\e[1;31m[-] No history files found or accessible.\e[0m"
+    fi
+
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+}
+
 # check for writable files and folders
 check_writable_by_user() {
     echo -e "\n\n\e[1;34m[+] Checking Files and Directories Writable by Current User\e[0m"
@@ -547,6 +588,12 @@ echo -e "\n"
 
 # search for SSH private keys
 search_ssh_private_keys
+
+# Add some spacing
+echo -e "\n"
+
+# search and dump shell history files
+dump_history_files()
 
 # Add some spacing
 echo -e "\n"
