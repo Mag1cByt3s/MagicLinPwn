@@ -394,6 +394,24 @@ search_sensitive_content() {
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
 
+# search for SSH private keys
+search_ssh_private_keys() {
+    echo -e "\n\n\e[1;34m[+] Searching for SSH Private Keys\e[0m"
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+
+    # Search for files containing "PRIVATE KEY" and exclude irrelevant errors
+    results=$(grep -rnw "PRIVATE KEY" /* 2>/dev/null | grep ":1")
+
+    if [ -z "$results" ]; then
+        echo -e "\e[1;31m[-] No SSH private keys found.\e[0m"
+    else
+        echo -e "\e[1;33m[!] SSH Private Keys Found:\e[0m"
+        echo "$results" | sed 's/^/    /'
+    fi
+
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+}
+
 # display ascii art
 ascii_art
 
@@ -453,3 +471,6 @@ search_interesting_files
 
 # search for potentially sensitive config files containing credentials
 search_sensitive_content
+
+# search for SSH private keys
+search_ssh_private_keys

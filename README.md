@@ -49,6 +49,11 @@ MagicLinPwn is a powerful and automated Linux privilege escalation script design
   - Excludes unnecessary directories (e.g., `doc`, `lib`) to reduce noise.
   - Highlights matches for better readability.
   - Only displays filenames and content when matches are found.
+- **SSH Private Key Search**:
+  - Recursively searches for files containing `PRIVATE KEY` across the system.
+  - Highlights private keys in the results for better visibility.
+  - Filters out irrelevant matches, ensuring only valid keys are displayed.
+  - Provides a clear message if no private keys are found.
 
 <br>
 
