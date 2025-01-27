@@ -61,6 +61,10 @@ check_if_root() {
         # If root, check if inside a Docker container
         detect_docker_container
 
+        echo -e "\n\e[1;36m[+] Suggestion: As root, consider using the following tools for credential dumping:\e[0m"
+        echo -e "    \e[1;34m- mimipenguin\e[0m (\e[4mhttps://github.com/huntergregal/mimipenguin\e[0m)"
+        echo -e "    \e[1;34m- LaZagne.py\e[0m (\e[4mhttps://github.com/AlessandroZ/LaZagne\e[0m)"
+
         # If not inside a container, display a simple root message and exit
         if [ "$docker_detected" -eq 0 ]; then
             echo -e "\e[1;31m[-] You are already running as root (UID or EUID). Exiting...\e[0m"
@@ -108,6 +112,33 @@ os_info() {
     # Hostname
     echo -e "\e[1;33mHostname:\e[0m $(hostname)"
     
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+}
+
+# Function to check if the machine is domain joined
+check_ad_integration() {
+    echo -e "\n\n\e[1;34m[+] Checking for Active Directory Integration\e[0m"
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+
+    # Check if machine is domain joined using realm
+    if command -v realm >/dev/null 2>&1; then
+        realm_list=$(realm list 2>/dev/null)
+        if echo "$realm_list" | grep -q "configured: kerberos-member"; then
+            echo -e "\e[1;33m[!] This machine is domain-joined (Active Directory detected):\e[0m"
+            echo "$realm_list" | sed 's/^/    /'
+
+            # Suggest using Linikatz if root
+            if [ "$(id -u)" -eq 0 ]; then
+                echo -e "\n\e[1;36m[+] Suggestion: As root, use \e[1;34mLinikatz\e[0m to dump secrets from Active Directory:\e[0m"
+                echo -e "    \e[4mhttps://github.com/Orange-Cyberdefense/LinikatzV2\e[0m"
+            fi
+        else
+            echo -e "\e[1;32m[+] No Active Directory integration detected.\e[0m"
+        fi
+    else
+        echo -e "\e[1;31m[-] 'realm' command not found. Unable to check for AD integration.\e[0m"
+    fi
+
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
 
@@ -658,6 +689,9 @@ check_writable_by_user() {
 
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
+
+# check if the machine is domain joined
+check_ad_integration
 
 # Check if running as root
 check_if_root
