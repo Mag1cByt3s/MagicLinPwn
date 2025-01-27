@@ -178,6 +178,32 @@ sudo_check() {
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
 
+# Check environment variables for sensitive information
+check_env_variables() {
+    echo -e "\n\n\e[1;34m[+] Checking Environment Variables for Sensitive Information\e[0m"
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+
+    # Define patterns to look for
+    sensitive_patterns=("PASS" "PASSWORD" "TOKEN" "SECRET" "KEY" "AWS" "API" "DB" "CREDENTIAL" "CRED" "SQL")
+
+    # Iterate through environment variables
+    found_sensitive=0
+    for var in $(env); do
+        for pattern in "${sensitive_patterns[@]}"; do
+            if echo "$var" | grep -qi "$pattern"; then
+                echo -e "\e[1;33m[!] Potential Sensitive Information:\e[0m $var"
+                found_sensitive=1
+            fi
+        done
+    done
+
+    if [ $found_sensitive -eq 0 ]; then
+        echo -e "\e[1;32m[+] No sensitive information detected in environment variables.\e[0m"
+    fi
+
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+}
+
 # check SUID binaries
 suid_check() {
     echo -e "\n\n\e[1;34m[+] Checking SUID Binaries\e[0m"
@@ -659,6 +685,12 @@ echo -e "\n"
 
 # enum sudo check
 sudo_check
+
+# Add some spacing
+echo -e "\n"
+
+# Check environment variables for sensitive information
+check_env_variables
 
 # Add some spacing
 echo -e "\n"

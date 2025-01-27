@@ -28,6 +28,10 @@ MagicLinPwn is a powerful and automated Linux privilege escalation script design
 - **Sudo Privileges Check**:
   - Checks if `sudo` is installed, displays the sudo version and if the user can execute `sudo` commands without a password.
   - Highlights critical configurations such as `ALL`, `NOPASSWD`, and `SETENV`.
+- **Environment Variable Check**:
+  - Scans environment variables for potential sensitive information such as `PASSWORD`, `TOKEN`, `SECRET`, `DB` etc.
+  - Highlights detected variables for further investigation.
+  - Provides a clear message if no sensitive information is found.
 - **SUID Binary Check**:
   - Finds and lists all binaries with the SUID bit set.
   - Highlights potentially dangerous binaries (e.g., interpreters like `bash` or `python`).
