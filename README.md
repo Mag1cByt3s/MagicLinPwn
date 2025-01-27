@@ -16,6 +16,15 @@ MagicLinPwn is a powerful and automated Linux privilege escalation script design
   - Detects and displays the operating system, kernel version, architecture, and hostname.
 - **User and Group Information**:
   - Displays the current user, UID, GID, primary group, and group memberships with line wrapping and highlighting for critical groups (e.g., `wheel`, `sudo`, `docker`, `lxd`).
+- **Root Privilege Check**:
+  - Detects if the script is running with root privileges (via `UID` or `EUID`).
+    If already root, exits the script to avoid unnecessary privilege escalation attempts.
+- **Docker Container Detection**:
+  - Detects if the script is running inside a Docker container by checking:
+      - `/proc/1/cgroup`
+      - The existence of the `/.dockerenv` file
+      - Environment variables (e.g., `DOCKER_CONTAINER`)
+    Suggests running `deepce` for container breakout checks if a container is detected.
 - **Sudo Privileges Check**:
   - Checks if `sudo` is installed, displays the sudo version and if the user can execute `sudo` commands without a password.
   - Highlights critical configurations such as `ALL`, `NOPASSWD`, and `SETENV`.

@@ -22,9 +22,51 @@ EOF
     echo -e "        (https://github.com/Mag1cByt3s/MagicLinPwn)"
 }
 
+# Function to detect if running inside a Docker container
+detect_docker_container() {
+    docker_detected=0
+
+    # Check for /.dockerenv file
+    if [ -f /.dockerenv ]; then
+        echo -e "\e[1;33m[!] Detected: /.dockerenv file exists (Docker container environment)\e[0m"
+        docker_detected=1
+    fi
+
+    # Check for 'docker' in cgroup
+    if grep -q docker /proc/1/cgroup 2>/dev/null; then
+        echo -e "\e[1;33m[!] Detected: 'docker' found in /proc/1/cgroup (Docker container environment)\e[0m"
+        docker_detected=1
+    fi
+
+    # Check for 'containerd' in cgroup (alternative to detect container runtimes)
+    if grep -q containerd /proc/1/cgroup 2>/dev/null; then
+        echo -e "\e[1;33m[!] Detected: 'containerd' found in /proc/1/cgroup (Docker container environment)\e[0m"
+        docker_detected=1
+    fi
+
+    # Check for any environment variable indicating Docker
+    if [ -n "$DOCKER_CONTAINER" ]; then
+        echo -e "\e[1;33m[!] Detected: DOCKER_CONTAINER environment variable set\e[0m"
+        docker_detected=1
+    fi
+
+    # Suggest deepce if inside a container
+    if [ $docker_detected -eq 1 ]; then
+        echo -e "\n\e[1;36m[+] Suggestion: Consider running \e[1;34mdeepce\e[0m (\e[4mhttps://github.com/stealthcopter/deepce\e[0m) to investigate container breakout potential.\e[0m"
+    fi
+}
+
 check_if_root() {
-    if [ "$(id -u)" -eq 0 ]; then
-        echo -e "\e[1;31m[-] You are already running as root. Exiting...\e[0m"
+    if [ "$(id -u)" -eq 0 ] || [ "$(id -ru)" -eq 0 ]; then
+        # If root, check if inside a Docker container
+        detect_docker_container
+
+        # If not inside a container, display a simple root message and exit
+        if [ "$docker_detected" -eq 0 ]; then
+            echo -e "\e[1;31m[-] You are already running as root (UID or EUID). Exiting...\e[0m"
+        fi
+
+        # Exit script since privilege escalation is unnecessary as root
         exit 0
     fi
 }
