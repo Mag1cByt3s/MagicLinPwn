@@ -24,7 +24,7 @@ MagicLinPwn is a powerful and automated Linux privilege escalation script design
       - `/proc/1/cgroup`
       - The existence of the `/.dockerenv` file
       - Environment variables (e.g., `DOCKER_CONTAINER`)
-    Suggests running `deepce` for container breakout checks if a container is detected.
+  - Suggests running `deepce` for container breakout checks if a container is detected.
 - **Sudo Privileges Check**:
   - Checks if `sudo` is installed, displays the sudo version and if the user can execute `sudo` commands without a password.
   - Highlights critical configurations such as `ALL`, `NOPASSWD`, and `SETENV`.
