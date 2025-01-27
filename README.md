@@ -19,8 +19,8 @@ MagicLinPwn is a powerful and automated Linux privilege escalation script design
 - **Root Privilege Check**:
   - Detects if the script is running with root privileges (via `UID` or `EUID`).
     - If running as root, suggests using additional tools for credential dumping:
-    - [mimipenguin](https://github.com/huntergregal/mimipenguin)
-    - [LaZagne.py](https://github.com/AlessandroZ/LaZagne)
+      - [mimipenguin](https://github.com/huntergregal/mimipenguin)
+      - [LaZagne.py](https://github.com/AlessandroZ/LaZagne)
 - **Active Directory Integration Check**:
   - Detects if the Linux machine is joined to an Active Directory domain.
   - Displays relevant domain information if detected.
