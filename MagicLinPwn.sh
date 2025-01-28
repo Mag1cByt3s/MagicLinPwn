@@ -808,20 +808,31 @@ check_writable_by_user() {
 print_summary() {
     echo -e "\n\e[1;34m[+] Summary\e[0m"
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+    
+    # Function to check if summary contains "Review needed"
+    highlight_summary() {
+        local summary_text=$1
+        if echo "$summary_text" | grep -q "Review needed"; then
+            echo -e "\e[1;31m$summary_text\e[0m"  # Red text for review needed
+        else
+            echo "$summary_text"  # Default color for no issues
+        fi
+    }
+
     echo -e "\e[1;33m[OS Information]:\e[0m $os_info_summary"
     echo -e "\e[1;33m[User Information]:\e[0m $user_info_summary"
-    echo -e "\e[1;33m[Sudo Privileges]:\e[0m $sudo_priv_summary"
-    echo -e "\e[1;33m[SUID Binaries]:\e[0m $suid_summary"
-    echo -e "\e[1;33m[SGID Binaries]:\e[0m $sgid_summary"
-    echo -e "\e[1;33m[Cron Jobs]:\e[0m $cron_summary"
-    echo -e "\e[1;33m[Capabilities]:\e[0m $capabilities_summary"
-    echo -e "\e[1;33m[Writable Files]:\e[0m $writable_files_summary"
-    echo -e "\e[1;33m[Interesting Files]:\e[0m $interesting_files_summary"
-    echo -e "\e[1;33m[Sensitive Content]:\e[0m $sensitive_content_summary"
-    echo -e "\e[1;33m[SSH Private Keys]:\e[0m $ssh_keys_summary"
+    echo -e "\e[1;33m[Sudo Privileges]:\e[0m $(highlight_summary "$sudo_priv_summary")"
+    echo -e "\e[1;33m[SUID Binaries]:\e[0m $(highlight_summary "$suid_summary")"
+    echo -e "\e[1;33m[SGID Binaries]:\e[0m $(highlight_summary "$sgid_summary")"
+    echo -e "\e[1;33m[Cron Jobs]:\e[0m $(highlight_summary "$cron_summary")"
+    echo -e "\e[1;33m[Capabilities]:\e[0m $(highlight_summary "$capabilities_summary")"
+    echo -e "\e[1;33m[Writable Files]:\e[0m $(highlight_summary "$writable_files_summary")"
+    echo -e "\e[1;33m[Interesting Files]:\e[0m $(highlight_summary "$interesting_files_summary")"
+    echo -e "\e[1;33m[Sensitive Content]:\e[0m $(highlight_summary "$sensitive_content_summary")"
+    echo -e "\e[1;33m[SSH Private Keys]:\e[0m $(highlight_summary "$ssh_keys_summary")"
     echo -e "\e[1;33m[Docker Detection]:\e[0m $docker_summary"
-    echo -e "\e[1;33m[Environment Variables]:\e[0m $env_vars_summary"
-    echo -e "\e[1;33m[Systemd Configurations]:\e[0m $systemd_summary"
+    echo -e "\e[1;33m[Environment Variables]:\e[0m $(highlight_summary "$env_vars_summary")"
+    echo -e "\e[1;33m[Systemd Configurations]:\e[0m $(highlight_summary "$systemd_summary")"
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
 
