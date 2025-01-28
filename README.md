@@ -1,6 +1,8 @@
 # MagicLinPwn
 MagicLinPwn is a powerful and automated Linux privilege escalation script designed to help security professionals and CTF enthusiasts identify potential misconfigurations, vulnerabilities, and weaknesses that can lead to privilege escalation.
 
+Once the script finishes, a comprehensive summary is displayed, providing an overview of the findings and highlighting potential risks.
+
 <br>
 
 ## Usage
@@ -93,6 +95,11 @@ MagicLinPwn is a powerful and automated Linux privilege escalation script design
   - Displays both writable files and writable directories separately.
   - Includes a timeout mechanism to prevent the scan from running indefinitely.
   - Clearly indicates if no writable files or directories are found.
+- **Brief Summary at the End**:
+    Provides a summary of all findings from the script.
+    Highlights areas that require attention (e.g., writable files, dangerous capabilities, sensitive environment variables).
+    Displays reassuring messages when no issues are found in specific checks.
+    Ensures users have a quick overview of potential privilege escalation vectors without scrolling through the detailed output.
 
 <br>
 

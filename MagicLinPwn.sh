@@ -22,6 +22,21 @@ EOF
     echo -e "        (https://github.com/Mag1cByt3s/MagicLinPwn)"
 }
 
+# Set Up Summary Variables
+os_info_summary=""
+user_info_summary=""
+sudo_priv_summary="No unusual sudo privileges detected."
+suid_summary="No SUID binaries detected."
+sgid_summary="No SGID binaries detected."
+cron_summary="No writable cron jobs or misconfigurations detected."
+capabilities_summary="No dangerous file capabilities detected."
+writable_files_summary="No writable critical files or directories detected."
+interesting_files_summary="No interesting files detected."
+ssh_keys_summary="No SSH private keys found."
+docker_summary="Not running in a Docker container."
+env_vars_summary="No sensitive environment variables detected."
+systemd_summary="No writable systemd files or misconfigurations detected."
+
 # Function to detect if running inside a Docker container
 detect_docker_container() {
     docker_detected=0
@@ -53,6 +68,9 @@ detect_docker_container() {
     # Suggest deepce if inside a container
     if [ $docker_detected -eq 1 ]; then
         echo -e "\n\e[1;36m[+] Suggestion: Consider running \e[1;34mdeepce\e[0m (\e[4mhttps://github.com/stealthcopter/deepce\e[0m) to investigate container breakout potential.\e[0m"
+
+        # docker container was detected. Add to summary
+        docker_summary="Running inside a Docker container."
     fi
 }
 
@@ -92,26 +110,26 @@ highlight_groups() {
 os_info() {
     echo -e "\n\n\e[1;34m[+] Gathering OS Information\e[0m"
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
-    
-    # Kernel version
-    echo -e "\e[1;33mKernel Version:\e[0m $(uname -r)"
-    
-    # Distro name and version
+
+    kernel_version=$(uname -r)
+    architecture=$(uname -m)
+    hostname=$(hostname)
     if [ -f /etc/os-release ]; then
         source /etc/os-release
-        echo -e "\e[1;33mDistro Name:\e[0m $NAME"
-        echo -e "\e[1;33mDistro Version:\e[0m $VERSION"
+        distro_name="$NAME"
+        distro_version="$VERSION"
     else
-        echo -e "\e[1;33mDistro Name:\e[0m Unknown"
-        echo -e "\e[1;33mDistro Version:\e[0m Unknown"
+        distro_name="Unknown"
+        distro_version="Unknown"
     fi
-    
-    # Architecture
-    echo -e "\e[1;33mArchitecture:\e[0m $(uname -m)"
-    
-    # Hostname
-    echo -e "\e[1;33mHostname:\e[0m $(hostname)"
-    
+
+    echo -e "\e[1;33mKernel Version:\e[0m $kernel_version"
+    echo -e "\e[1;33mDistro Name:\e[0m $distro_name"
+    echo -e "\e[1;33mDistro Version:\e[0m $distro_version"
+    echo -e "\e[1;33mArchitecture:\e[0m $architecture"
+    echo -e "\e[1;33mHostname:\e[0m $hostname"
+
+    os_info_summary="Kernel: $kernel_version, Distro: $distro_name $distro_version, Arch: $architecture, Hostname: $hostname"
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
 
@@ -148,22 +166,30 @@ user_info() {
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
     
     # Display the current user
-    echo -e "\e[1;33mCurrent User:\e[0m $(whoami)"
+    current_user=$(whoami)
+    echo -e "\e[1;33mCurrent User:\e[0m $current_user"
     
     # Display the current user's UID and GID
-    echo -e "\e[1;33mUser ID (UID):\e[0m $(id -u)"
-    echo -e "\e[1;33mGroup ID (GID):\e[0m $(id -g)"
+    uid=$(id -u)
+    gid=$(id -g)
+    echo -e "\e[1;33mUser ID (UID):\e[0m $uid"
+    echo -e "\e[1;33mGroup ID (GID):\e[0m $gid"
     
     # Display the user's primary group
-    echo -e "\e[1;33mPrimary Group:\e[0m $(id -gn)"
+    primary_group=$(id -gn)
+    echo -e "\e[1;33mPrimary Group:\e[0m $primary_group"
     
     # Display all groups with wrapping
     echo -ne "\e[1;33mGroup Memberships:\e[0m "
-    id -Gn | tr ' ' '\n' | while read group; do
+    group_memberships=$(id -Gn | tr ' ' '\n' | while read group; do
         # Highlight specific groups
         highlighted_group=$(highlight_groups "$group")
         echo -n "$highlighted_group, "
-    done | sed 's/, $//' | fold -s -w 50 | sed '1!s/^/             /'
+    done | sed 's/, $//' | fold -s -w 50 | sed '1!s/^/             /')
+    echo -e "$group_memberships"
+
+    # Update summary
+    user_info_summary="User: $current_user (UID: $uid, GID: $gid), Primary Group: $primary_group, Groups: $(echo "$group_memberships" | tr '\n' ' ')"
     
     echo -e "\n\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
@@ -173,9 +199,13 @@ sudo_check() {
     echo -e "\n\n\e[1;34m[+] Checking Sudo Privileges\e[0m"
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 
+    # Initialize the summary variable
+    sudo_priv_summary="No unusual sudo privileges detected."
+
     # Check if sudo is installed
     if ! command -v sudo >/dev/null 2>&1; then
         echo -e "\e[1;31m[-] Sudo is not installed on this system.\e[0m"
+        sudo_priv_summary="Sudo is not installed."
         echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
         return
     fi
@@ -188,6 +218,9 @@ sudo_check() {
     sudo_output=$(sudo -n -l 2>/dev/null)
     if [ $? -eq 0 ]; then
         echo -e "\e[1;33m[!] User can run the following \e[1;31msudo\e[0m \e[1;33mcommands without a password:\e[0m"
+
+        # Update the summary
+        sudo_priv_summary="User has sudo privileges without a password. Review required."
 
         # Process the output line by line and highlight critical elements
         while IFS= read -r line; do
@@ -217,6 +250,9 @@ check_env_variables() {
     # Define patterns to look for
     sensitive_patterns=("PASS" "PASSWORD" "TOKEN" "SECRET" "KEY" "AWS" "API" "DB" "CREDENTIAL" "CRED" "SQL")
 
+    # Initialize the summary variable
+    env_vars_summary="No sensitive information detected in environment variables."
+
     # Iterate through environment variables
     found_sensitive=0
     for var in $(env); do
@@ -230,6 +266,8 @@ check_env_variables() {
 
     if [ $found_sensitive -eq 0 ]; then
         echo -e "\e[1;32m[+] No sensitive information detected in environment variables.\e[0m"
+    else
+        env_vars_summary="Sensitive environment variables detected. Review needed."
     fi
 
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
@@ -253,6 +291,8 @@ suid_check() {
         echo -e "\e[1;31m[-] No SUID binaries found.\e[0m"
     else
         echo -e "\e[1;33m[!] SUID binaries found:\e[0m"
+
+        suid_summary="SUID binaries detected. Review needed."
 
         # Highlight common dangerous SUID binaries
         while IFS= read -r binary; do
@@ -292,6 +332,8 @@ sgid_check() {
     else
         echo -e "\e[1;33m[!] SGID binaries found:\e[0m"
 
+        sgid_summary="SGID binaries detected. Review needed."
+
         # Highlight common dangerous SGID binaries
         while IFS= read -r binary; do
             case "$binary" in
@@ -313,6 +355,9 @@ cron_check() {
     echo -e "\n\n\e[1;34m[+] Checking Cron Jobs\e[0m"
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 
+    # Initialize the summary variable
+    cron_summary="No writable cron jobs or misconfigurations detected."
+
     # Check /etc/crontab
     echo -e "\e[1;33m[!] /etc/crontab:\e[0m"
     if [ -f /etc/crontab ]; then
@@ -322,6 +367,7 @@ cron_check() {
         # Check if /etc/crontab is writable
         if [ -w /etc/crontab ]; then
             echo -e "\e[1;31m[!] /etc/crontab is writable! Potential security risk.\e[0m"
+            cron_summary="/etc/crontab is writable! Review required."
         else
             echo -e "    \e[1;32m/etc/crontab is not writable.\e[0m"
         fi
@@ -367,6 +413,7 @@ cron_check() {
     else
         echo -e "\e[1;31m[!] Writable cron files detected! Potential security risk:\e[0m"
         echo "$writable_cron_files" | sed 's/^/        /'
+        cron_summary="Writable cron files detected! Review required."
     fi
 
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
@@ -377,6 +424,9 @@ capabilities_check() {
     echo -e "\n\n\e[1;34m[+] Checking Capabilities\e[0m"
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 
+    # Initialize the summary variable
+    capabilities_summary="No dangerous file capabilities detected."
+
     # Timeout duration (in seconds)
     timeout_duration=15
 
@@ -386,18 +436,26 @@ capabilities_check() {
     # Check if the timeout occurred
     if [ $? -eq 124 ]; then
         echo -e "\e[1;31m[-] Capabilities check timed out after $timeout_duration seconds. Skipping...\e[0m"
+        capabilities_summary="Capabilities check timed out. Results incomplete."
     elif [ -z "$capabilities" ]; then
         echo -e "    \e[1;31mNo files with capabilities found.\e[0m"
     else
         echo -e "\e[1;33m[!] Files and their Capabilities:\e[0m"
+        dangerous_found=0
         while IFS= read -r line; do
             # Highlight common dangerous capabilities
             if echo "$line" | grep -qE "(cap_setuid|cap_setgid|cap_dac_override|cap_net_admin|cap_net_raw)"; then
                 echo -e "    \e[1;31m$line\e[0m (Potentially dangerous)"
+                dangerous_found=1
             else
                 echo -e "    $line"
             fi
         done <<< "$capabilities"
+
+        if [ $dangerous_found -eq 1 ]; then
+            capabilities_summary="Dangerous capabilities detected! Review needed."
+        fi
+
     fi
 
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
@@ -418,6 +476,9 @@ check_writable_critical_files() {
         "/etc/crontab"
         "/etc/ssh/sshd_config"
     )
+
+    # Initialize the summary
+    writable_files_summary="No writable critical files or directories detected."
 
     writable_files_found=0
     writable_directories_found=0
@@ -448,13 +509,11 @@ check_writable_critical_files() {
         fi
     done
 
-    # Summary messages
-    if [ $writable_files_found -eq 0 ]; then
-        echo -e "\e[1;32m[+] No writable critical files detected.\e[0m"
-    fi
-
-    if [ $writable_directories_found -eq 0 ]; then
-        echo -e "\e[1;32m[+] No writable critical directories detected.\e[0m"
+    # Update the summary
+    if [ $writable_files_found -eq 0 ] && [ $writable_directories_found -eq 0 ]; then
+        echo -e "\e[1;32m[+] No writable critical files or directories detected.\e[0m"
+    else
+        writable_files_summary="Writable critical files or directories detected. Review needed."
     fi
 
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
@@ -465,8 +524,13 @@ search_interesting_files() {
     echo -e "\n\n\e[1;34m[+] Searching for Potentially Interesting Files\e[0m"
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 
+    # Initialize the summary
+    interesting_files_summary="No interesting files detected."
+
     # List of file extensions to search for
     file_extensions=".xls .xls* .xltx .csv .od* .doc .doc* .pdf .pot .pot* .pp* .key .conf .config .cnf"
+
+    files_found=0
 
     # Iterate over extensions and search for files
     for ext in $file_extensions; do
@@ -477,8 +541,14 @@ search_interesting_files() {
             echo -e "    \e[1;31mNo files found with this extension.\e[0m"
         else
             echo "$results" | sed 's/^/    /'
+            files_found=1
         fi
     done
+
+    # Update the summary
+    if [ $files_found -eq 1 ]; then
+        interesting_files_summary="Potentially interesting files detected. Review needed."
+    fi
 
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
@@ -488,14 +558,26 @@ search_sensitive_content() {
     echo -e "\n\n\e[1;34m[+] Searching for Sensitive Content in Config Files\e[0m"
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 
+    # Initialize the summary
+    sensitive_content_summary="No sensitive content detected in config files."
+
+    # Variable to track if sensitive content is found
+    sensitive_found=0
+
     # Find .cnf, .conf, and .config files and search for sensitive content
     find / \( -name "*.cnf" -o -name "*.conf" -o -name "*.config" \) 2>/dev/null | grep -v "doc\|lib" | while read -r file; do
         matches=$(grep --color=always "password\|pass" "$file" 2>/dev/null | grep -v "\#")
         if [ -n "$matches" ]; then
             echo -e "\n\e[1;33m[!] File:\e[0m $file"
             echo "$matches" | sed 's/^/    /'
+            sensitive_found=1
         fi
     done
+
+    # Update the summary
+    if [ $sensitive_found -eq 1 ]; then
+        sensitive_content_summary="Sensitive content detected in config files. Review needed."
+    fi
 
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
@@ -504,6 +586,9 @@ search_sensitive_content() {
 search_ssh_private_keys() {
     echo -e "\n\n\e[1;34m[+] Searching for SSH Private Keys\e[0m"
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+
+    # Initialize the summary
+    ssh_keys_summary="No SSH private keys found in common locations."
 
     # Get the script's absolute path
     script_path=$(realpath "$0")
@@ -530,6 +615,11 @@ search_ssh_private_keys() {
         fi
     done
 
+    # Update the summary based on results
+    if [ $results_found -eq 1 ]; then
+        ssh_keys_summary="SSH private keys detected. Review the findings for potential sensitive information."
+    fi
+
     if [ $results_found -eq 0 ]; then
         echo -e "\e[1;31m[-] No SSH private keys found in common locations.\e[0m"
     fi
@@ -541,6 +631,9 @@ search_ssh_private_keys() {
 dump_history_files() {
     echo -e "\n\n\e[1;34m[+] Searching for and Dumping Shell History Files\e[0m"
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+
+    # Initialize the summary
+    history_files_summary="No shell history files found or accessible."
 
     # Common history files to check
     history_files=(
@@ -571,6 +664,11 @@ dump_history_files() {
         done
     done
 
+    # Update the summary based on results
+    if [ $found -eq 1 ]; then
+        history_files_summary="Shell history files found. Review the findings for sensitive commands or credentials."
+    fi
+
     if [ $found -eq 0 ]; then
         echo -e "\e[1;31m[-] No history files found or accessible.\e[0m"
     fi
@@ -582,6 +680,9 @@ dump_history_files() {
 check_systemd_writable() {
     echo -e "\n\n\e[1;34m[+] Checking systemd-related Privilege Escalation Vectors\e[0m"
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+
+    # Initialize the summary
+    systemd_summary="No writable systemd files or misconfigurations detected."
 
     # Timeout duration
     timeout_duration=30
@@ -596,6 +697,7 @@ check_systemd_writable() {
     else
         echo -e "\e[1;33m[!] Writable .service Files Found:\e[0m"
         echo "$writable_services" | sed 's/^/    /'
+        systemd_summary="Writable .service files detected. Review for privilege escalation opportunities."
     fi
 
     # Check writable binaries executed by services
@@ -612,6 +714,7 @@ check_systemd_writable() {
     else
         echo -e "\e[1;33m[!] Writable Binaries Executed by Services Found:\e[0m"
         printf "    %s\n" "${writable_binaries[@]}"
+        systemd_summary="Writable binaries executed by services detected. Review for potential abuse."
     fi
 
     # Check writable folders in systemd PATH
@@ -628,6 +731,7 @@ check_systemd_writable() {
     else
         echo -e "\e[1;33m[!] Writable Folders in systemd PATH Found:\e[0m"
         printf "    %s\n" "${writable_dirs[@]}"
+        systemd_summary="Writable folders in systemd PATH detected. Check for privilege escalation opportunities."
     fi
 
     # Check writable timers
@@ -640,6 +744,7 @@ check_systemd_writable() {
     else
         echo -e "\e[1;33m[!] Writable Timers Found:\e[0m"
         echo "$writable_timers" | sed 's/^/    /'
+        systemd_summary="Writable timers detected. Investigate for potential abuse."
     fi
 
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
@@ -649,6 +754,9 @@ check_systemd_writable() {
 check_writable_by_user() {
     echo -e "\n\n\e[1;34m[+] Checking Files and Directories Writable by Current User\e[0m"
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+
+    # Initialize summary
+    writable_files_dirs_summary="No writable files or directories detected for the current user."
 
     # Timeout for the check (in seconds)
     timeout_duration=30
@@ -669,6 +777,7 @@ check_writable_by_user() {
     else
         echo -e "\e[1;33m[!] Files Writable by $current_user:\e[0m"
         echo "$user_writable_files" | sed 's/^/    /'
+        writable_files_dirs_summary="Writable files detected for the current user. Review required."
     fi
 
     echo -e "\n\e[1;33m[!] Searching for Directories Writable by $current_user...\e[0m"
@@ -685,8 +794,34 @@ check_writable_by_user() {
     else
         echo -e "\e[1;33m[!] Directories Writable by $current_user:\e[0m"
         echo "$user_writable_dirs" | sed 's/^/    /'
+        writable_files_dirs_summary="Writable directories detected for the current user. Review required."
     fi
 
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+
+    # Update the summary if writable files or directories are found
+    if [ -n "$user_writable_files" ] || [ -n "$user_writable_dirs" ]; then
+        writable_files_dirs_summary="Writable files and/or directories detected for the current user. Review required."
+    fi
+}
+
+print_summary() {
+    echo -e "\n\e[1;34m[+] Summary\e[0m"
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+    echo -e "\e[1;33m[OS Information]:\e[0m $os_info_summary"
+    echo -e "\e[1;33m[User Information]:\e[0m $user_info_summary"
+    echo -e "\e[1;33m[Sudo Privileges]:\e[0m $sudo_priv_summary"
+    echo -e "\e[1;33m[SUID Binaries]:\e[0m $suid_summary"
+    echo -e "\e[1;33m[SGID Binaries]:\e[0m $sgid_summary"
+    echo -e "\e[1;33m[Cron Jobs]:\e[0m $cron_summary"
+    echo -e "\e[1;33m[Capabilities]:\e[0m $capabilities_summary"
+    echo -e "\e[1;33m[Writable Files]:\e[0m $writable_files_summary"
+    echo -e "\e[1;33m[Interesting Files]:\e[0m $interesting_files_summary"
+    echo -e "\e[1;33m[Sensitive Content]:\e[0m $sensitive_content_summary"
+    echo -e "\e[1;33m[SSH Private Keys]:\e[0m $ssh_keys_summary"
+    echo -e "\e[1;33m[Docker Detection]:\e[0m $docker_summary"
+    echo -e "\e[1;33m[Environment Variables]:\e[0m $env_vars_summary"
+    echo -e "\e[1;33m[Systemd Configurations]:\e[0m $systemd_summary"
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
 
@@ -791,3 +926,9 @@ echo -e "\n"
 
 # check for writable files and folders
 check_writable_by_user
+
+# Add some spacing
+echo -e "\n"
+
+# Call the summary function
+print_summary
