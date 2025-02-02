@@ -74,6 +74,11 @@ Once the script finishes, a comprehensive summary is displayed, providing an ove
   - Excludes common irrelevant directories like `lib`, `fonts`, `share`, and `core`.
   - Displays results clearly for each file extension.
   - Handles cases where no files are found with a clean message.
+- **Email Enumeration**:
+  - Searches for readable mailboxes in `/var/mail/` and prints their **full content**.
+  - Displays email metadata (sender, recipient, date) and message body.
+  - Highlights any discovered emails that may contain **sensitive information**.
+  - If no readable mailboxes are found, it provides a clear message.
 - **Sensitive Content Search**:
   - Searches `.cnf`, `.conf`, and `.config` files for sensitive keywords like `password` or `pass`.
   - Excludes unnecessary directories (e.g., `doc`, `lib`) to reduce noise.

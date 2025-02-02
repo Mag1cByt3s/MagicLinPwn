@@ -641,6 +641,33 @@ search_interesting_files() {
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
 
+# search and print content of readable mails
+check_mail() {
+    echo -e "\n\n\e[1;34m[+] Checking for Readable Emails in /var/mail/\e[0m"
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+
+    mail_found=0
+
+    # Loop through all mailboxes in /var/mail/
+    for mailbox in /var/mail/*; do
+        if [ -f "$mailbox" ] && [ -r "$mailbox" ]; then
+            echo -e "\e[1;33m[!] Found Readable Mailbox:\e[0m $mailbox"
+            echo -e "\e[1;36m[+] Full Content of $mailbox:\e[0m"
+            cat "$mailbox" | sed 's/^/    /'
+            echo -e "\e[1;35m----------------------------------------\e[0m"
+            mail_found=1
+        fi
+    done
+
+    if [ $mail_found -eq 0 ]; then
+        echo -e "\e[1;31m[-] No readable mailboxes found in /var/mail/.\e[0m"
+    else
+        mail_summary="Readable emails found in /var/mail/. Review needed."
+    fi
+
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+}
+
 # search for potentially sensitive config files containing credentials
 search_sensitive_content() {
     echo -e "\n\n\e[1;34m[+] Searching for Sensitive Content in Config Files\e[0m"
@@ -1052,6 +1079,12 @@ echo -e "\n"
 
 # search for potentially interesting files
 search_interesting_files
+
+# Add some spacing
+echo -e "\n"
+
+# search and print content of readable mails
+check_mail
 
 # Add some spacing
 echo -e "\n"
