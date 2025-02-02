@@ -297,6 +297,39 @@ sudo_check() {
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
 
+# Function to display network interfaces and IP addresses
+network_interfaces() {
+    echo -e "\n\n\e[1;34m[+] Gathering Network Interfaces and IP Addresses\e[0m"
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+
+    # Display network interfaces with IP addresses
+    if command -v ip >/dev/null 2>&1; then
+        ip -brief addr show | awk '{print "\e[1;33m[!] Interface:\e[0m", $1, "->", $3}'
+    elif command -v ifconfig >/dev/null 2>&1; then
+        ifconfig | awk '/^[a-z]/ { iface=$1 } /inet / { print "\e[1;33m[!] Interface:\e[0m", iface, "->", $2 }'
+    else
+        echo -e "\e[1;31m[-] No network interface tools found (ip/ifconfig).\e[0m"
+    fi
+
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+}
+
+# Function to display listening ports and associated processes
+listening_ports() {
+    echo -e "\n\n\e[1;34m[+] Checking Listening Ports and Associated Processes\e[0m"
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+
+    if command -v ss >/dev/null 2>&1; then
+        ss -tulnp | awk 'NR>1 {print "\e[1;33m[!] Port:\e[0m", $5, "->", $7}'
+    elif command -v netstat >/dev/null 2>&1; then
+        netstat -tulnp | awk 'NR>2 {print "\e[1;33m[!] Port:\e[0m", $4, "->", $7}'
+    else
+        echo -e "\e[1;31m[-] No network tools found (ss/netstat).\e[0m"
+    fi
+
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+}
+
 # Check environment variables for sensitive information
 check_env_variables() {
     echo -e "\n\n\e[1;34m[+] Checking Environment Variables for Sensitive Information\e[0m"
@@ -920,6 +953,18 @@ echo -e "\n"
 
 # enum sudo check
 sudo_check
+
+# Add some spacing
+echo -e "\n"
+
+# Show network intefaces
+network_interfaces
+
+# Add some spacing
+echo -e "\n"
+
+# Display listening ports and associated services
+listening_ports
 
 # Add some spacing
 echo -e "\n"
