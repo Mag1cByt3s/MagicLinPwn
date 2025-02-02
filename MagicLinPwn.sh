@@ -93,18 +93,73 @@ check_if_root() {
     fi
 }
 
-# Function to highlight specific groups
+# Function to highlight specific groups and provide abuse information
 highlight_groups() {
     local group=$1
     case "$group" in
-        wheel|docker|lxd|sudo|libvirtd|kvm|disk|www-data|apache|nginx|shadow|root|staff|backup|operator)
-            echo -e "\e[1;31m$group\e[0m"  # Highlight in bold red
+        wheel)
+            echo -e "\e[1;31m$group\e[0m"
+            echo -e "    \e[1;33m[!] Wheel Group:\e[0m Allows users to execute commands as root via sudo."
+            echo -e "    \e[1;36m[-> HackTricks]:\e[0m https://book.hacktricks.wiki/en/linux-hardening/privilege-escalation/interesting-groups-linux-pe/index.html#wheel-group"
+            ;;
+        docker)
+            echo -e "\e[1;31m$group\e[0m"
+            echo -e "    \e[1;33m[!] Docker Group:\e[0m Can run Docker containers as root, leading to privilege escalation."
+            echo -e "    \e[1;36m[-> HackTricks]:\e[0m https://book.hacktricks.wiki/en/linux-hardening/privilege-escalation/interesting-groups-linux-pe/index.html#docker-group"
+            ;;
+        lxd)
+            echo -e "\e[1;31m$group\e[0m"
+            echo -e "    \e[1;33m[!] LXD Group:\e[0m Can create privileged containers, leading to root access."
+            echo -e "    \e[1;36m[-> HackTricks]:\e[0m https://book.hacktricks.wiki/en/linux-hardening/privilege-escalation/interesting-groups-linux-pe/lxd-privilege-escalation.html"
+            ;;
+        sudo)
+            echo -e "\e[1;31m$group\e[0m"
+            echo -e "    \e[1;33m[!] Sudo Group:\e[0m Allows running commands as root if misconfigured."
+            echo -e "    \e[1;36m[-> HackTricks]:\e[0m https://book.hacktricks.wiki/en/linux-hardening/privilege-escalation/interesting-groups-linux-pe/index.html#sudoadmin-groups"
+            ;;
+        libvirt)
+            echo -e "\e[1;31m$group\e[0m"
+            echo -e "    \e[1;33m[!] Libvirt Group:\e[0m Can control virtual machines, possibly leading to privilege escalation."
+            echo -e "    \e[1;36m[-> Medium]:\e[0m https://medium.com/@alinuxadmin/arbitrary-file-read-write-and-rce-using-libvirt-ebc239dcbd8d"
+            ;;
+        kvm)
+            echo -e "\e[1;31m$group\e[0m"
+            echo -e "    \e[1;33m[!] KVM Group:\e[0m Has access to virtual machine control, potential escalation risk."
+            ;;
+        disk)
+            echo -e "\e[1;31m$group\e[0m"
+            echo -e "    \e[1;33m[!] Disk Group:\e[0m Allows direct disk access, enabling password or file extraction."
+            echo -e "    \e[1;36m[-> HackTricks]:\e[0m https://book.hacktricks.wiki/en/linux-hardening/privilege-escalation/interesting-groups-linux-pe/index.html#disk-group"
+            ;;
+        www-data|apache|nginx)
+            echo -e "\e[1;31m$group\e[0m"
+            echo -e "    \e[1;33m[!] Web Server Group:\e[0m Common for web service users, may lead to web-based privilege escalation."
+            ;;
+        shadow)
+            echo -e "\e[1;31m$group\e[0m"
+            echo -e "    \e[1;33m[!] Shadow Group:\e[0m Can read /etc/shadow, enabling password hash extraction."
+            echo -e "    \e[1;36m[-> HackTricks]:\e[0m https://book.hacktricks.wiki/en/linux-hardening/privilege-escalation/interesting-groups-linux-pe/index.html#shadow-group"
+            ;;
+        root)
+            echo -e "\e[1;31m$group\e[0m"
+            echo -e "    \e[1;33m[!] Root Group:\e[0m Full system control. Check if it is misconfigured."
+            ;;
+        staff)
+            echo -e "\e[1;31m$group\e[0m"
+            echo -e "    \e[1;33m[!] Staff Group:\e[0m Allows users to add local modifications to the system (/usr/local) without needing root privileges (note that executables in /usr/local/bin are in the PATH variable of any user, and they may "override" the executables in /bin and /usr/bin with the same name)."
+            echo -e "    \e[1;36m[-> HackTricks]:\e[0m https://book.hacktricks.wiki/en/linux-hardening/privilege-escalation/interesting-groups-linux-pe/index.html#staff-group"
+            ;;
+        adm)
+            echo -e "\e[1;31m$group\e[0m"
+            echo -e "    \e[1;33m[!] Admin Group:\e[0m Can read logs, useful for privilege escalation via credential leaks."
+            echo -e "    \e[1;36m[-> HackTricks]:\e[0m https://book.hacktricks.wiki/en/linux-hardening/privilege-escalation/interesting-groups-linux-pe/index.html#adm-group"
             ;;
         *)
             echo "$group"  # Default color for other groups
             ;;
     esac
 }
+
 
 # Function to display OS information
 os_info() {

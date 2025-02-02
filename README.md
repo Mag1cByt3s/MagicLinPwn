@@ -17,7 +17,10 @@ Once the script finishes, a comprehensive summary is displayed, providing an ove
 - **OS Information Gathering**:
   - Detects and displays the operating system, kernel version, architecture, and hostname.
 - **User and Group Information**:
-  - Displays the current user, UID, GID, primary group, and group memberships with line wrapping and highlighting for critical groups (e.g., `wheel`, `sudo`, `docker`, `lxd`).
+  - Displays the current user, UID, GID, primary group, and group memberships with line wrapping.
+  - Highlights critical groups that may allow privilege escalation (e.g., `wheel`, `sudo`, `docker`, `lxd`, `shadow`, etc.).
+  - Provides explanations for highlighted groups, including how they can be abused for privilege escalation.
+  - Where applicable, includes direct links to **HackTricks** for detailed exploitation techniques.
 - **Root Privilege Check**:
   - Detects if the script is running with root privileges (via `UID` or `EUID`).
     - If running as root, suggests using additional tools for credential dumping:
