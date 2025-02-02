@@ -89,6 +89,10 @@ Once the script finishes, a comprehensive summary is displayed, providing an ove
   - Dumps the contents of any accessible history files for analysis.
   - Highlights the file paths and their contents, providing insights into commands executed by users.
   - Clearly indicates if no history files are found or accessible.
+- **Credential Discovery in Log Files**:
+  - Searches common log files (`auth.log`, `access.log`, `syslog`, etc.) for potential credentials.
+  - Identifies sensitive information such as usernames, passwords, API tokens, and secrets.
+  - Highlights findings and provides a summary indicating whether credentials were discovered.
 - **Systemd-Related Privilege Escalation Checks**:
   - Identifies writable `.service` files in common systemd directories (e.g., `/etc/systemd/system`, `/lib/systemd/system`).
   - Detects writable binaries executed by services via the `ExecStart=` directive in `.service` files.

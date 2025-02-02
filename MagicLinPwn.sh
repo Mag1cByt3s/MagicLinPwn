@@ -893,6 +893,50 @@ check_writable_by_user() {
     fi
 }
 
+# Function to search for potential credentials in log files
+search_credentials_in_logs() {
+    echo -e "\n\n\e[1;34m[+] Searching for Credentials in Log Files\e[0m"
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+
+    # List of log files to search
+    log_files=(
+        "/var/log/auth.log"
+        "/var/log/secure"
+        "/var/log/syslog"
+        "/var/log/httpd/access_log"
+        "/var/log/apache2/access.log"
+        "/var/log/nginx/access.log"
+        "/var/log/mysql/error.log"
+        "/var/log/mariadb/mariadb.log"
+        "/var/log/postgresql/postgresql.log"
+        "/var/log/samba/log.smbd"
+    )
+
+    # Improved regex pattern for credential detection
+    patterns="([a-zA-Z0-9_-]*(user|username|login|pass|password|passwd|pw|token|secret)[a-zA-Z0-9_-]*)="
+
+    credentials_found=0
+
+    for log in "${log_files[@]}"; do
+        if [ -f "$log" ]; then
+            matches=$(grep -Eio "$patterns" "$log" 2>/dev/null)
+            if [ -n "$matches" ]; then
+                echo -e "\e[1;33m[!] Potential Credentials Found in:\e[0m $log"
+                grep -Eio "$patterns" "$log" | sed 's/^/    /'
+                credentials_found=1
+            fi
+        fi
+    done
+
+    if [ $credentials_found -eq 0 ]; then
+        echo -e "\e[1;31m[-] No credentials found in log files.\e[0m"
+    else
+        log_credentials_summary="Potential credentials found in log files. Review needed."
+    fi
+
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+}
+
 print_summary() {
     echo -e "\n\e[1;34m[+] Summary\e[0m"
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
@@ -910,6 +954,7 @@ print_summary() {
     echo -e "\e[1;33m[OS Information]:\e[0m $os_info_summary"
     echo -e "\e[1;33m[User Information]:\e[0m $user_info_summary"
     echo -e "\e[1;33m[Sudo Privileges]:\e[0m $(highlight_summary "$sudo_priv_summary")"
+    echo -e "\e[1;33m[Environment Variables]:\e[0m $(highlight_summary "$env_vars_summary")"
     echo -e "\e[1;33m[SUID Binaries]:\e[0m $(highlight_summary "$suid_summary")"
     echo -e "\e[1;33m[SGID Binaries]:\e[0m $(highlight_summary "$sgid_summary")"
     echo -e "\e[1;33m[Cron Jobs]:\e[0m $(highlight_summary "$cron_summary")"
@@ -918,8 +963,8 @@ print_summary() {
     echo -e "\e[1;33m[Interesting Files]:\e[0m $(highlight_summary "$interesting_files_summary")"
     echo -e "\e[1;33m[Sensitive Content]:\e[0m $(highlight_summary "$sensitive_content_summary")"
     echo -e "\e[1;33m[SSH Private Keys]:\e[0m $(highlight_summary "$ssh_keys_summary")"
+    echo -e "\e[1;33m[Log Credentials]:\e[0m $log_credentials_summary"
     echo -e "\e[1;33m[Docker Detection]:\e[0m $docker_summary"
-    echo -e "\e[1;33m[Environment Variables]:\e[0m $(highlight_summary "$env_vars_summary")"
     echo -e "\e[1;33m[Systemd Configurations]:\e[0m $(highlight_summary "$systemd_summary")"
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
@@ -1025,6 +1070,12 @@ echo -e "\n"
 
 # search and dump shell history files
 dump_history_files
+
+# Add some spacing
+echo -e "\n"
+
+# search for potential credentials in log files
+search_credentials_in_logs
 
 # Add some spacing
 echo -e "\n"
