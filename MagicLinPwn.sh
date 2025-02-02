@@ -151,7 +151,7 @@ highlight_groups() {
             ;;
         adm)
             echo -e "\e[1;31m$group\e[0m"
-            echo -e "    \e[1;33m[!] Admin Group:\e[0m Can read logs, useful for privilege escalation via credential leaks."
+            echo -e "    \e[1;33m[!] Adm Group:\e[0m Can read logs, useful for privilege escalation via credential leaks."
             echo -e "    \e[1;36m[-> HackTricks]:\e[0m https://book.hacktricks.wiki/en/linux-hardening/privilege-escalation/interesting-groups-linux-pe/index.html#adm-group"
             ;;
         *)
