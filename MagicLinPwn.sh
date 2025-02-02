@@ -219,33 +219,27 @@ check_ad_integration() {
 user_info() {
     echo -e "\n\n\e[1;34m[+] Gathering User Information\e[0m"
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
-    
-    # Display the current user
+
     current_user=$(whoami)
-    echo -e "\e[1;33mCurrent User:\e[0m $current_user"
-    
-    # Display the current user's UID and GID
     uid=$(id -u)
     gid=$(id -g)
+    primary_group=$(id -gn)
+
+    echo -e "\e[1;33mCurrent User:\e[0m $current_user"
     echo -e "\e[1;33mUser ID (UID):\e[0m $uid"
     echo -e "\e[1;33mGroup ID (GID):\e[0m $gid"
-    
-    # Display the user's primary group
-    primary_group=$(id -gn)
     echo -e "\e[1;33mPrimary Group:\e[0m $primary_group"
-    
-    # Display all groups with wrapping
-    echo -ne "\e[1;33mGroup Memberships:\e[0m "
+
+    # Properly format group memberships
+    echo -e "\e[1;33mGroup Memberships:\e[0m"
     group_memberships=$(id -Gn | tr ' ' '\n' | while read group; do
-        # Highlight specific groups
-        highlighted_group=$(highlight_groups "$group")
-        echo -n "$highlighted_group, "
-    done | sed 's/, $//' | fold -s -w 50 | sed '1!s/^/             /')
+        highlight_groups "$group"
+    done)
     echo -e "$group_memberships"
 
-    # Update summary
-    user_info_summary="User: $current_user (UID: $uid, GID: $gid), Primary Group: $primary_group, Groups: $(echo "$group_memberships" | tr '\n' ' ')"
-    
+    # Store formatted data for summary
+    user_info_summary="User: $current_user (UID: $uid, GID: $gid)\nPrimary Group: $primary_group\nGroups: $(id -Gn | tr ' ' ', ')"
+
     echo -e "\n\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
 
@@ -977,19 +971,22 @@ search_credentials_in_logs() {
 print_summary() {
     echo -e "\n\e[1;34m[+] Summary\e[0m"
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
-    
-    # Function to check if summary contains "Review needed"
+
     highlight_summary() {
         local summary_text=$1
         if echo "$summary_text" | grep -q "Review needed"; then
-            echo -e "\e[1;31m$summary_text\e[0m"  # Red text for review needed
+            echo -e "\e[1;31m$summary_text\e[0m"
         else
-            echo "$summary_text"  # Default color for no issues
+            echo "$summary_text"
         fi
     }
 
     echo -e "\e[1;33m[OS Information]:\e[0m $os_info_summary"
-    echo -e "\e[1;33m[User Information]:\e[0m $user_info_summary"
+
+    # Format user information properly with new lines
+    echo -e "\e[1;33m[User Information]:\e[0m"
+    echo -e "$user_info_summary" | while IFS= read -r line; do echo "    $line"; done
+
     echo -e "\e[1;33m[Sudo Privileges]:\e[0m $(highlight_summary "$sudo_priv_summary")"
     echo -e "\e[1;33m[Environment Variables]:\e[0m $(highlight_summary "$env_vars_summary")"
     echo -e "\e[1;33m[SUID Binaries]:\e[0m $(highlight_summary "$suid_summary")"
