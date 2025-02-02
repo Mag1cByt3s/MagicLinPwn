@@ -666,6 +666,7 @@ check_mail() {
 
     if [ $mail_found -eq 0 ]; then
         echo -e "\e[1;31m[-] No readable mailboxes found in /var/mail/.\e[0m"
+        mail_summary="No readable mailboxes found in /var/mail/."
     else
         mail_summary="Readable emails found in /var/mail/. Review needed."
     fi
