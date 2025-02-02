@@ -936,7 +936,6 @@ search_credentials_in_logs() {
     echo -e "\n\n\e[1;34m[+] Searching for Credentials in Log Files\e[0m"
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 
-    # List of log files to search
     log_files=(
         "/var/log/auth.log"
         "/var/log/secure"
@@ -950,17 +949,17 @@ search_credentials_in_logs() {
         "/var/log/samba/log.smbd"
     )
 
-    # Improved regex pattern for credential detection
-    patterns="([a-zA-Z0-9_-]*(user|username|login|pass|password|passwd|pw|token|secret)[a-zA-Z0-9_-]*)="
+    # Improved regex pattern to capture both key and value
+    patterns="([a-zA-Z0-9_-]*(user|username|login|pass|password|passwd|pw|token|secret)[a-zA-Z0-9_-]*)=([^&\" ]+)"
 
     credentials_found=0
 
     for log in "${log_files[@]}"; do
         if [ -f "$log" ]; then
-            matches=$(grep -Eio "$patterns" "$log" 2>/dev/null)
+            matches=$(grep -Eio "$patterns" "$log" 2>/dev/null | sort -u)  # Sort and remove duplicates
             if [ -n "$matches" ]; then
                 echo -e "\e[1;33m[!] Potential Credentials Found in:\e[0m $log"
-                grep -Eio "$patterns" "$log" | sed 's/^/    /'
+                echo "$matches" | sed 's/^/    /'
                 credentials_found=1
             fi
         fi
