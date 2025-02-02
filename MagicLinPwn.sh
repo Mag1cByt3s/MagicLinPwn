@@ -302,11 +302,18 @@ network_interfaces() {
     echo -e "\n\n\e[1;34m[+] Gathering Network Interfaces and IP Addresses\e[0m"
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 
-    # Display network interfaces with IP addresses
     if command -v ip >/dev/null 2>&1; then
-        ip -brief addr show | awk '{print "\e[1;33m[!] Interface:\e[0m", $1, "->", $3}'
+        ip -brief addr show | while read -r iface state addr _; do
+            if [[ "$addr" != "" ]]; then
+                echo -e "\e[1;33m[!] Interface:\e[0m $iface -> $addr"
+            else
+                echo -e "\e[1;33m[!] Interface:\e[0m $iface -> No IP assigned"
+            fi
+        done
     elif command -v ifconfig >/dev/null 2>&1; then
-        ifconfig | awk '/^[a-z]/ { iface=$1 } /inet / { print "\e[1;33m[!] Interface:\e[0m", iface, "->", $2 }'
+        ifconfig | awk '/^[a-z]/ { iface=$1 } /inet / { print iface, $2 }' | while read -r iface ip; do
+            echo -e "\e[1;33m[!] Interface:\e[0m $iface -> $ip"
+        done
     else
         echo -e "\e[1;31m[-] No network interface tools found (ip/ifconfig).\e[0m"
     fi
@@ -320,9 +327,13 @@ listening_ports() {
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 
     if command -v ss >/dev/null 2>&1; then
-        ss -tulnp | awk 'NR>1 {print "\e[1;33m[!] Port:\e[0m", $5, "->", $7}'
+        ss -tulnp | tail -n +2 | awk '{split($5, addr, ":"); port=addr[length(addr)]; proc=($7=="") ? "(Unknown: Insufficient Privileges)" : $7; print port, proc}' | while read -r port proc; do
+            echo -e "\e[1;33m[!] Port:\e[0m $port -> $proc"
+        done
     elif command -v netstat >/dev/null 2>&1; then
-        netstat -tulnp | awk 'NR>2 {print "\e[1;33m[!] Port:\e[0m", $4, "->", $7}'
+        netstat -tulnp | tail -n +3 | awk '{split($4, addr, ":"); port=addr[length(addr)]; proc=($7=="") ? "(Unknown: Insufficient Privileges)" : $7; print port, proc}' | while read -r port proc; do
+            echo -e "\e[1;33m[!] Port:\e[0m $port -> $proc"
+        done
     else
         echo -e "\e[1;31m[-] No network tools found (ss/netstat).\e[0m"
     fi
