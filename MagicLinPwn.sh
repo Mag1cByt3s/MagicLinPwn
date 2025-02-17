@@ -22,6 +22,18 @@ EOF
     echo -e "        (https://github.com/Mag1cByt3s/MagicLinPwn)"
 }
 
+# test if sed supports -E or -r
+E=E
+echo | sed -${E} 's/o/a/' 2>/dev/null
+if [ $? -ne 0 ] ; then
+	echo | sed -r 's/o/a/' 2>/dev/null
+	if [ $? -eq 0 ] ; then
+		E=r
+	else
+        echo -e "\e[1;33mWARNING: No suitable option found for extended regex with sed. Continuing but the results might be unreliable.\e[0m"
+	fi
+fi
+
 # Set Up Summary Variables
 os_info_summary=""
 user_info_summary=""
