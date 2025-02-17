@@ -16,6 +16,12 @@ Once the script finishes, a comprehensive summary is displayed, providing an ove
 
 - **OS Information Gathering**:
   - Detects and displays the operating system, kernel version, architecture, and hostname.
+- **Kernel Exploit Suggestion**:
+  - Integrates Linux Exploit Suggester to identify potential kernel         vulnerabilities for privilege escalation.
+  - Cross-references the system's kernel version against known exploits.
+  - Highlights kernel vulnerabilities that may be exploitable for privilege escalation.
+  - Provides direct links to resources for further analysis and exploitation.
+  - Displays results in the summary section, flagging any discovered kernel-level privilege escalation vectors.
 - **User and Group Information**:
   - Displays the current user, UID, GID, primary group, and group memberships with line wrapping.
   - Highlights critical groups that may allow privilege escalation (e.g., `wheel`, `sudo`, `docker`, `lxd`, `shadow`, etc.).
