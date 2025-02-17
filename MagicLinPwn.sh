@@ -22,6 +22,9 @@ EOF
     echo -e "        (https://github.com/Mag1cByt3s/MagicLinPwn)"
 }
 
+# Define colors
+SED_RED="${C}[1;31m&${C}[0m"
+
 # test if sed supports -E or -r
 E=E
 echo | sed -${E} 's/o/a/' 2>/dev/null
