@@ -23,6 +23,7 @@ EOF
 }
 
 # Define colors
+C=$(printf '\033')
 SED_RED="${C}[1;31m&${C}[0m"
 
 # test if sed supports -E or -r
