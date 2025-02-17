@@ -991,6 +991,7 @@ search_credentials_in_logs() {
 
     if [ $credentials_found -eq 0 ]; then
         echo -e "\e[1;31m[-] No credentials found in log files.\e[0m"
+        log_credentials_summary="No credentials found in log files."
     else
         log_credentials_summary="Potential credentials found in log files. Review needed."
     fi
