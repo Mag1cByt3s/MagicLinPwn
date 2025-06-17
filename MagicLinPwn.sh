@@ -538,6 +538,9 @@ cron_check() {
         cron_summary="Writable cron files detected! Review required."
     fi
 
+    # Give user a hint to also check for cronjobs with pspy
+    echo -e "\e[1;31m[!] Remember to also check for non-visible cronjobs using pspy!\e[0m"
+
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
 
