@@ -388,6 +388,22 @@ listening_ports() {
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
 
+# Function to display routing table
+routing_table() {
+    echo -e "\n\n\e[1;34m[+] Gathering Routing Information\e[0m"
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+    echo -e "\e[1;33mRouting Table:\e[0m"
+    if command -v ip >/dev/null; then
+        ip route show
+    elif command -v route >/dev/null; then
+        route -n
+    else
+        echo -e "\e[1;31mNo routing command available\e[0m"
+    fi
+    then route -n; else echo "No routing info"; fi | tr '\n' '; ')
+    echo -e "\n\e[1;32m--------------------------------------------------------------------------\e[0m"
+}
+
 # Check environment variables for sensitive information
 check_env_variables() {
     echo -e "\n\n\e[1;34m[+] Checking Environment Variables for Sensitive Information\e[0m"
@@ -1166,6 +1182,9 @@ listening_ports
 
 # Add some spacing
 echo -e "\n"
+
+# Show the routing table
+routing_table
 
 # Check environment variables for sensitive information
 check_env_variables
