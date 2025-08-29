@@ -632,6 +632,27 @@ filesystems_info() {
     echo -e "\n\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
 
+# Function to display /etc/fstab contents
+fstab_info() {
+    echo -e "\n\n\e[1;34m[+] Gathering /etc/fstab Information\e[0m"
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+    if [ -r /etc/fstab ]; then
+        echo -e "\e[1;33m/etc/fstab Contents:\e[0m"
+        cat /etc/fstab | grep -v '^#' | grep -v '^$' | while read line; do
+            if echo "$line" | grep -qE 'noexec|nosuid|nodev'; then
+                echo -e "\e[1;31m$line (Restricted options)\e[0m"
+            else
+                echo "$line"
+            fi
+        done
+    else
+        echo -e "\e[1;31m/etc/fstab not readable\e[0m"
+    fi
+    # Store formatted data for summary
+    fstab_summary=$(cat /etc/fstab 2>/dev/null | grep -v '^#' | grep -v '^$' | tr '\n' '; ')
+    echo -e "\n\e[1;32m--------------------------------------------------------------------------\e[0m"
+}
+
 # check if we can write some critical files
 check_writable_critical_files() {
     echo -e "\n\n\e[1;34m[+] Checking Writable Critical Files and Directories\e[0m"
@@ -1173,6 +1194,12 @@ echo -e "\n"
 
 # show info about mounted filesystems
 filesystems_info
+
+# Add some spacing
+echo -e "\n"
+
+# show info about /etc/fstab
+fstab_info
 
 # Add some spacing
 echo -e "\n"

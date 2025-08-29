@@ -76,6 +76,10 @@ Once the script finishes, a comprehensive summary is displayed, providing an ove
   - Enumerates block devices and mounted filesystems.
   - Displays concise details including names, sizes, types, filesystems, mount points, usage, and options.
   - Prioritizes `lsblk` and `findmnt` for output; falls back to `df` and `mount` if unavailable.
+- **/etc/fstab Information**:
+  - Displays the contents of `/etc/fstab`, excluding comments and empty lines.
+  - Highlights entries with restricted mount options (e.g., `noexec`, `nosuid`, `nodev`).
+  - Checks if the file is readable and reports if not.
 - **Writable Critical Files and Directories Check**:
   - Checks critical system files (e.g., `/etc/passwd`, `/etc/shadow`, `/etc/sudoers`) for write permissions.
   - Checks critical directories (e.g., `/etc/sudoers.d`, `/etc/cron.d`) for write permissions and scans for writable files within them.
