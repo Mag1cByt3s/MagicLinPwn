@@ -45,6 +45,8 @@ Once the script finishes, a comprehensive summary is displayed, providing an ove
 - **Sudo Privileges Check**:
   - Checks if `sudo` is installed, displays the sudo version and if the user can execute `sudo` commands without a password.
   - Highlights critical configurations such as `ALL`, `NOPASSWD`, and `SETENV`.
+- **PATH Variable Check**:
+  - Show PATH Variable content and highlight any non-normal entries
 - **Network Interfaces and Listening Ports**:
   - Displays all active network interfaces with assigned IP addresses.
   - Lists open listening ports along with their associated processes.

@@ -320,6 +320,30 @@ sudo_check() {
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
 
+# Function to display user's PATH and highlight non-normal entries
+path_info() {
+    echo -e "\n\n\e[1;34m[+] Gathering PATH Information\e[0m"
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+    current_path="$PATH"
+    echo -e "\e[1;33mCurrent PATH:\e[0m $current_path"
+    echo -e "\e[1;33mPATH Entries:\e[0m"
+    IFS=':' read -r -a path_array <<< "$PATH"
+    for dir in "${path_array[@]}"; do
+        if [ -z "$dir" ]; then
+            echo -e "\e[1;31m(Empty entry - non-normal)\e[0m"
+        elif [ "$dir" = "." ]; then
+            echo -e "\e[1;31m$dir (Current directory - non-normal)\e[0m"
+        elif [ -d "$dir" ] && [ -w "$dir" ]; then
+            echo -e "\e[1;31m$dir (Writable - non-normal)\e[0m"
+        else
+            echo "$dir"
+        fi
+    done
+    # Store formatted data for summary
+    path_info_summary="PATH: $current_path\nNon-normal entries: $(IFS=':'; for dir in "${path_array[@]}"; do if [ -z "$dir" ] || [ "$dir" = "." ] || ([ -d "$dir" ] && [ -w "$dir" ]); then echo -n "$dir, "; fi; done | sed 's/, $//')"
+    echo -e "\n\e[1;32m--------------------------------------------------------------------------\e[0m"
+}
+
 # Function to display network interfaces and IP addresses
 network_interfaces() {
     echo -e "\n\n\e[1;34m[+] Gathering Network Interfaces and IP Addresses\e[0m"
@@ -1073,6 +1097,12 @@ echo -e "\n"
 
 # enum sudo check
 sudo_check
+
+# Add some spacing
+echo -e "\n"
+
+# Show PATH variable info
+path_info
 
 # Add some spacing
 echo -e "\n"
