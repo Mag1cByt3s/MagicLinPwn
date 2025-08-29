@@ -619,6 +619,8 @@ filesystems_info() {
         lsblk -o NAME,SIZE,TYPE,FSTYPE,MOUNTPOINT
     fi
     if command -v findmnt >/dev/null; then
+        # Add some spacing
+        echo -e "\n"
         echo -e "\e[1;33mMounted Filesystems:\e[0m"
         findmnt -D -o SOURCE,TARGET,FSTYPE,SIZE,USED,AVAIL,USE%,OPTIONS
     else
@@ -629,7 +631,7 @@ filesystems_info() {
     fi
     # Store formatted data for summary
     filesystems_summary=$(df -hT | tail -n +2 | awk '{print $NF " (" $1 ", " $2 ", " $6 ")" }' | tr '\n' '\n')
-    echo -e "\n\e[1;32m--------------------------------------------------------------------------\e[0m"
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
 
 # Function to display /etc/fstab contents
@@ -1072,7 +1074,7 @@ search_credentials_in_logs() {
 print_summary() {
     echo -e "\n\e[1;34m[+] Summary\e[0m"
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
-
+    
     highlight_summary() {
         local summary_text=$1
         if echo "$summary_text" | grep -q "Review needed"; then
@@ -1083,11 +1085,12 @@ print_summary() {
     }
 
     echo -e "\e[1;33m[OS Information]:\e[0m $os_info_summary"
-
+    
     # Format user information properly with new lines
     echo -e "\e[1;33m[User Information]:\e[0m"
-    echo -e "$user_info_summary" | while IFS= read -r line; do echo "    $line"; done
-
+    echo -e "$user_info_summary" | while IFS= read -r line; do echo " $line"; done
+    
+    echo -e "\e[1;33m[PATH Information]:\e[0m $path_info_summary"
     echo -e "\e[1;33m[Sudo Privileges]:\e[0m $(highlight_summary "$sudo_priv_summary")"
     echo -e "\e[1;33m[Environment Variables]:\e[0m $(highlight_summary "$env_vars_summary")"
     echo -e "\e[1;33m[SUID Binaries]:\e[0m $(highlight_summary "$suid_summary")"
@@ -1102,6 +1105,8 @@ print_summary() {
     echo -e "\e[1;33m[Email Readability]:\e[0m $(highlight_summary "$mail_summary")"
     echo -e "\e[1;33m[Docker Detection]:\e[0m $docker_summary"
     echo -e "\e[1;33m[Systemd Configurations]:\e[0m $(highlight_summary "$systemd_summary")"
+    echo -e "\e[1;33m[Filesystem Information]:\e[0m $filesystems_summary"
+    echo -e "\e[1;33m[/etc/fstab Information]:\e[0m $fstab_summary"
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
 
