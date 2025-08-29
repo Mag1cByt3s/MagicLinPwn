@@ -610,6 +610,28 @@ capabilities_check() {
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
 
+# Function to display mounted filesystems
+filesystems_info() {
+    echo -e "\n\n\e[1;34m[+] Gathering Filesystem Information\e[0m"
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+    if command -v lsblk >/dev/null; then
+        echo -e "\e[1;33mBlock Devices:\e[0m"
+        lsblk -o NAME,SIZE,TYPE,FSTYPE,MOUNTPOINT
+    fi
+    if command -v findmnt >/dev/null; then
+        echo -e "\e[1;33mMounted Filesystems:\e[0m"
+        findmnt -D -o SOURCE,TARGET,FSTYPE,SIZE,USED,AVAIL,USE%,OPTIONS
+    else
+        echo -e "\e[1;33mMounted Filesystems:\e[0m"
+        df -hT
+        echo -e "\e[1;33mMount Options:\e[0m"
+        mount | sort
+    fi
+    # Store formatted data for summary
+    filesystems_summary=$(df -hT | tail -n +2 | awk '{print $NF " (" $1 ", " $2 ", " $6 ")" }' | tr '\n' '\n')
+    echo -e "\n\e[1;32m--------------------------------------------------------------------------\e[0m"
+}
+
 # check if we can write some critical files
 check_writable_critical_files() {
     echo -e "\n\n\e[1;34m[+] Checking Writable Critical Files and Directories\e[0m"
@@ -1145,6 +1167,12 @@ echo -e "\n"
 
 # check for files with capabilities
 capabilities_check
+
+# Add some spacing
+echo -e "\n"
+
+# show info about mounted filesystems
+filesystems_info
 
 # Add some spacing
 echo -e "\n"

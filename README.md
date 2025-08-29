@@ -72,6 +72,10 @@ Once the script finishes, a comprehensive summary is displayed, providing an ove
   - Finds and lists all files with Linux capabilities.
   - Highlights potentially dangerous capabilities (e.g., `cap_setuid`, `cap_net_raw`, `cap_dac_override`).
   - Includes a timeout mechanism to skip the check if it takes too long.
+- **Filesystem Information**:
+  - Enumerates block devices and mounted filesystems.
+  - Displays concise details including names, sizes, types, filesystems, mount points, usage, and options.
+  - Prioritizes `lsblk` and `findmnt` for output; falls back to `df` and `mount` if unavailable.
 - **Writable Critical Files and Directories Check**:
   - Checks critical system files (e.g., `/etc/passwd`, `/etc/shadow`, `/etc/sudoers`) for write permissions.
   - Checks critical directories (e.g., `/etc/sudoers.d`, `/etc/cron.d`) for write permissions and scans for writable files within them.
