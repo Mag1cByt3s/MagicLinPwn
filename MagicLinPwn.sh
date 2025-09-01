@@ -868,7 +868,7 @@ search_interesting_files() {
     interesting_files_summary="No interesting files detected."
 
     # List of file extensions to search for
-    file_extensions=".xls .xls* .xltx .csv .od* .doc .doc* .pdf .pot .pot* .pp* .key .conf .config .cnf"
+    file_extensions=".xls .xls* .xltx .csv .od* .doc .doc* .pdf .pot .pot* .pp* .key .conf .config .cnf .sh .backup .bak .pem"
 
     files_found=0
 
