@@ -27,6 +27,9 @@ Once the script finishes, a comprehensive summary is displayed, providing an ove
   - Highlights critical groups that may allow privilege escalation (e.g., `wheel`, `sudo`, `docker`, `lxd`, `shadow`, etc.).
   - Provides explanations for highlighted groups, including how they can be abused for privilege escalation.
   - Where applicable, includes direct links to **HackTricks** for detailed exploitation techniques.
+  - Displays last login information for users who have logged in (using `lastlog` if available), filtering out never-logged-in users.
+  - Displays currently logged in users with session details (using `w` if available).
+  - Reports if `lastlog` or `w` commands are unavailable.
 - **Root Privilege Check**:
   - Detects if the script is running with root privileges (via `UID` or `EUID`).
     - If running as root, suggests using additional tools for credential dumping:

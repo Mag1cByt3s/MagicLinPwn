@@ -272,6 +272,35 @@ user_info() {
     echo -e "\n\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
 
+# Function to display logged in users and last login information
+logged_users_info() {
+    echo -e "\n\n\e[1;34m[+] Gathering Logged In Users and Last Login Information\e[0m"
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+    echo -e "\e[1;33mLast Login Information:\e[0m"
+    if command -v lastlog >/dev/null; then
+        lastlog | grep -v "Never logged in" | awk '{print $1 " - " $3 " " $4 " " $5 " " $6 " " $7 " " $8 " " $9}'
+    else
+        echo -e "\e[1;31mCommand lastlog not available, cannot check last login information\e[0m"
+    fi
+
+    # Add some spacing
+    echo -e "\n"
+
+    echo -e "\e[1;33mCurrently Logged In Users:\e[0m"
+    if command -v w >/dev/null; then
+        w
+    else
+        echo -e "\e[1;31mCommand w not available, cannot check currently logged in users\e[0m"
+    fi
+    # Store formatted data for summary
+    if command -v lastlog >/dev/null && command -v w >/dev/null; then
+        logged_users_summary="Last Logins: $(lastlog | grep -v "Never logged in" | wc -l) users; Current Users: $(w -h | wc -l)"
+    else
+        logged_users_summary="Commands not available"
+    fi
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+}
+
 # Function to check and highlight sudo permissions
 sudo_check() {
     echo -e "\n\n\e[1;34m[+] Checking Sudo Privileges\e[0m"
@@ -645,6 +674,8 @@ capabilities_check() {
 
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
+
+
 
 # Function to display mounted filesystems
 filesystems_info() {
@@ -1175,6 +1206,12 @@ echo -e "\n"
 
 # enum current user and group info
 user_info
+
+# Add some spacing
+echo -e "\n"
+
+# Function to display logged in users and last login information
+logged_users_info()
 
 # Add some spacing
 echo -e "\n"
