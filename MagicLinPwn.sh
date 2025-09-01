@@ -478,7 +478,8 @@ routing_table() {
     else
         echo -e "\e[1;31mNo routing command available\e[0m"
     fi
-    then route -n; else echo "No routing info"; fi | tr '\n' '; ')
+    # Store formatted data for summary
+    routing_summary=$(if command -v ip >/dev/null; then ip route show; elif command -v route >/dev/null; then route -n; else echo "No routing info"; fi | tr '\n' '; ')
     echo -e "\n\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
 
@@ -925,28 +926,23 @@ check_mail() {
 search_sensitive_content() {
     echo -e "\n\n\e[1;34m[+] Searching for Sensitive Content in Config Files\e[0m"
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
-
     # Initialize the summary
     sensitive_content_summary="No sensitive content detected in config files."
-
     # Variable to track if sensitive content is found
     sensitive_found=0
-
     # Find .cnf, .conf, and .config files and search for sensitive content
     find / \( -name "*.cnf" -o -name "*.conf" -o -name "*.config" \) 2>/dev/null | grep -v "doc\|lib" | while read -r file; do
-        matches=$(grep --color=always "password\|pass" "$file" 2>/dev/null | grep -v "\#")
+        matches=$(grep --color=always "password\|pass" "$file" 2>/dev/null | grep -v "#")
         if [ -n "$matches" ]; then
             echo -e "\n\e[1;33m[!] File:\e[0m $file"
-            echo "$matches" | sed 's/^/    /'
+            echo "$matches" | sed 's/^/ /'
             sensitive_found=1
         fi
     done
-
     # Update the summary
     if [ $sensitive_found -eq 1 ]; then
         sensitive_content_summary="Sensitive content detected in config files. Review needed."
     fi
-
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
 
@@ -1271,7 +1267,7 @@ user_info
 echo -e "\n"
 
 # Function to display logged in users and last login information
-logged_users_info()
+logged_users_info
 
 # Add some spacing
 echo -e "\n"
