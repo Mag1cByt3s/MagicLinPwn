@@ -373,6 +373,35 @@ path_info() {
     echo -e "\n\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
 
+# Function to display shell history and history files
+history_info() {
+    echo -e "\n\n\e[1;34m[+] Gathering Shell History Information\e[0m"
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+    echo -e "\e[1;33mCurrent Shell History:\e[0m"
+    if [ -f ~/.bash_history ]; then
+        cat ~/.bash_history
+    else
+        history
+    fi
+    echo -e "\e[1;33mHistory Files Found:\e[0m"
+    history_files=$(find / -type f \( -name "*_hist*" -o -name "*_history*" \) 2>/dev/null)
+    if [ -n "$history_files" ]; then
+        for file in $history_files; do
+            if [ -r "$file" ]; then
+                echo -e "\e[1;31m$file (Readable):\e[0m"
+                cat "$file"
+            else
+                echo "$file (Not readable)"
+            fi
+        done
+    else
+        echo "No history files found"
+    fi
+    # Store formatted data for summary
+    history_summary="Current history entries: $(history | wc -l); Found files: $(echo "$history_files" | wc -l)"
+    echo -e "\n\e[1;32m--------------------------------------------------------------------------\e[0m"
+}
+
 # Function to display /etc/hosts contents
 hosts_file() {
     echo -e "\n\n\e[1;34m[+] Gathering /etc/hosts Information\e[0m"
@@ -916,52 +945,33 @@ search_ssh_private_keys() {
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
 
-# search and dump shell history files
-dump_history_files() {
-    echo -e "\n\n\e[1;34m[+] Searching for and Dumping Shell History Files\e[0m"
+# Function to display shell history and history files
+history_info() {
+    echo -e "\n\n\e[1;34m[+] Gathering Shell History Information\e[0m"
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
-
-    # Initialize the summary
-    history_files_summary="No shell history files found or accessible."
-
-    # Common history files to check
-    history_files=(
-        ".bash_history"
-        ".zsh_history"
-        ".ash_history"
-        ".history"
-        ".csh_history"
-        ".ksh_history"
-        ".tcsh_history"
-        ".fish_history"
-    )
-
-    # Search for history files in common locations
-    home_dirs=$(find /home /root -type d 2>/dev/null)
-    found=0
-
-    for home in $home_dirs; do
-        for file in "${history_files[@]}"; do
-            target="$home/$file"
-            if [ -f "$target" ]; then
-                echo -e "\e[1;33m[!] History File Found:\e[0m $target"
-                echo -e "\e[1;33mContents:\e[0m"
-                cat "$target" | sed 's/^/    /'
-                echo
-                found=1
-            fi
-        done
+    echo -e "\e[1;33mCurrent Shell History:\e[0m"
+    if [ -f ~/.bash_history ]; then
+        cat ~/.bash_history
+    else
+        history
+    fi
+    # Add some spacing
+    echo -e "\n"
+    echo -e "\e[1;33mHistory Files Found:\e[0m"
+    find / \( -path /proc -o -path /sys -o -path /dev -o -path /run -o -path /tmp -o -path /nix -o -path /snap \) -prune -o -type f \( -name "*_history*" \) -print0 2>/dev/null | while IFS= read -r -d '' file; do
+        if [ -r "$file" ]; then
+            echo -e "\e[1;31m$file (Readable):\e[0m"
+            cat "$file"
+            # Add some spacing
+            echo -e "\n"
+        else
+            echo "$file (Not readable)"
+            # Add some spacing
+            echo -e "\n"
+        fi
     done
-
-    # Update the summary based on results
-    if [ $found -eq 1 ]; then
-        history_files_summary="Shell history files found. Review the findings for sensitive commands or credentials."
-    fi
-
-    if [ $found -eq 0 ]; then
-        echo -e "\e[1;31m[-] No history files found or accessible.\e[0m"
-    fi
-
+    # Store formatted data for summary
+    history_summary="Current history entries: $(history | wc -l); Found files: $(find / \( -path /proc -o -path /sys -o -path /dev -o -path /run -o -path /tmp -o -path /nix -o -path /snap \) -prune -o -type f \( -name "*_history*" \) 2>/dev/null | wc -l)"
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
 
@@ -1224,6 +1234,12 @@ echo -e "\n"
 
 # Show PATH variable info
 path_info
+
+# Add some spacing
+echo -e "\n"
+
+# Show shell history
+history_info
 
 # Add some spacing
 echo -e "\n"
