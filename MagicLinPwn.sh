@@ -383,23 +383,24 @@ history_info() {
     else
         history
     fi
+    # Add some spacing
+    echo -e "\n"
     echo -e "\e[1;33mHistory Files Found:\e[0m"
-    history_files=$(find / -type f \( -name "*_hist*" -o -name "*_history*" \) 2>/dev/null)
-    if [ -n "$history_files" ]; then
-        for file in $history_files; do
-            if [ -r "$file" ]; then
-                echo -e "\e[1;31m$file (Readable):\e[0m"
-                cat "$file"
-            else
-                echo "$file (Not readable)"
-            fi
-        done
-    else
-        echo "No history files found"
-    fi
+    find / \( -path /proc -o -path /sys -o -path /dev -o -path /run -o -path /tmp -o -path /nix -o -path /snap \) -prune -o -type f \( -name "*_history*" \) -print0 2>/dev/null | while IFS= read -r -d '' file; do
+        if [ -r "$file" ]; then
+            echo -e "\e[1;31m$file (Readable):\e[0m"
+            cat "$file"
+            # Add some spacing
+            echo -e "\n"
+        else
+            echo "$file (Not readable)"
+            # Add some spacing
+            echo -e "\n"
+        fi
+    done
     # Store formatted data for summary
-    history_summary="Current history entries: $(history | wc -l); Found files: $(echo "$history_files" | wc -l)"
-    echo -e "\n\e[1;32m--------------------------------------------------------------------------\e[0m"
+    history_summary="Current history entries: $(history | wc -l); Found files: $(find / \( -path /proc -o -path /sys -o -path /dev -o -path /run -o -path /tmp -o -path /nix -o -path /snap \) -prune -o -type f \( -name "*_history*" \) 2>/dev/null | wc -l)"
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
 
 # Function to display /etc/hosts contents
@@ -991,36 +992,6 @@ search_ssh_private_keys() {
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
 
-# Function to display shell history and history files
-history_info() {
-    echo -e "\n\n\e[1;34m[+] Gathering Shell History Information\e[0m"
-    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
-    echo -e "\e[1;33mCurrent Shell History:\e[0m"
-    if [ -f ~/.bash_history ]; then
-        cat ~/.bash_history
-    else
-        history
-    fi
-    # Add some spacing
-    echo -e "\n"
-    echo -e "\e[1;33mHistory Files Found:\e[0m"
-    find / \( -path /proc -o -path /sys -o -path /dev -o -path /run -o -path /tmp -o -path /nix -o -path /snap \) -prune -o -type f \( -name "*_history*" \) -print0 2>/dev/null | while IFS= read -r -d '' file; do
-        if [ -r "$file" ]; then
-            echo -e "\e[1;31m$file (Readable):\e[0m"
-            cat "$file"
-            # Add some spacing
-            echo -e "\n"
-        else
-            echo "$file (Not readable)"
-            # Add some spacing
-            echo -e "\n"
-        fi
-    done
-    # Store formatted data for summary
-    history_summary="Current history entries: $(history | wc -l); Found files: $(find / \( -path /proc -o -path /sys -o -path /dev -o -path /run -o -path /tmp -o -path /nix -o -path /snap \) -prune -o -type f \( -name "*_history*" \) 2>/dev/null | wc -l)"
-    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
-}
-
 # check writable systemd related files
 check_systemd_writable() {
     echo -e "\n\n\e[1;34m[+] Checking systemd-related Privilege Escalation Vectors\e[0m"
@@ -1379,12 +1350,6 @@ echo -e "\n"
 
 # search for SSH private keys
 search_ssh_private_keys
-
-# Add some spacing
-echo -e "\n"
-
-# search and dump shell history files
-dump_history_files
 
 # Add some spacing
 echo -e "\n"
