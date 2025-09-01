@@ -1165,6 +1165,23 @@ search_credentials_in_logs() {
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
 
+# Function to display processes running as root
+root_processes_info() {
+    echo -e "\n\n\e[1;34m[+] Gathering Processes Running as Root\e[0m"
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+    echo -e "\e[1;33mProcesses Running as Root:\e[0m"
+    ps aux | grep "^root" | while read -r line; do
+        if echo "$line" | grep -qE "systemd|apache|mysql|postgres|ssh|ftp|smb|http|nginx|docker|lxd"; then
+            echo -e "\e[1;31m$line (Potentially exploitable service)\e[0m"
+        else
+            echo "$line"
+        fi
+    done
+    # Store formatted data for summary
+    root_processes_summary="Root processes: $(ps aux | grep -c "^root")"
+    echo -e "\n\e[1;32m--------------------------------------------------------------------------\e[0m"
+}
+
 print_summary() {
     echo -e "\n\e[1;34m[+] Summary\e[0m"
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
@@ -1191,7 +1208,7 @@ print_summary() {
     echo -e "\e[1;33m[SGID Binaries]:\e[0m $(highlight_summary "$sgid_summary")"
     echo -e "\e[1;33m[Cron Jobs]:\e[0m $(highlight_summary "$cron_summary")"
     echo -e "\e[1;33m[Capabilities]:\e[0m $(highlight_summary "$capabilities_summary")"
-    echo -e "\e[1;33m[Writable Files]:\e[0m $(highlight_summary "$writable_files_summary")"
+    echo -e "\e[1;33m[Writable Files]:\e[0m $(highlight_summary "$writable_files_dirs_summary")"
     echo -e "\e[1;33m[Interesting Files]:\e[0m $(highlight_summary "$interesting_files_summary")"
     echo -e "\e[1;33m[Sensitive Content]:\e[0m $(highlight_summary "$sensitive_content_summary")"
     echo -e "\e[1;33m[SSH Private Keys]:\e[0m $(highlight_summary "$ssh_keys_summary")"
@@ -1201,6 +1218,7 @@ print_summary() {
     echo -e "\e[1;33m[Systemd Configurations]:\e[0m $(highlight_summary "$systemd_summary")"
     echo -e "\e[1;33m[Filesystem Information]:\e[0m $filesystems_summary"
     echo -e "\e[1;33m[/etc/fstab Information]:\e[0m $fstab_summary"
+    echo -e "\e[1;33m[Root Processes]:\e[0m $root_processes_summary"
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
 
@@ -1368,6 +1386,12 @@ echo -e "\n"
 
 # check for writable files and folders
 check_writable_by_user
+
+# Add some spacing
+echo -e "\n"
+
+# display processes running as root
+root_processes_info
 
 # Add some spacing
 echo -e "\n"
