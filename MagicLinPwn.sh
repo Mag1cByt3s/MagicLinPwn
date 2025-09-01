@@ -344,6 +344,26 @@ path_info() {
     echo -e "\n\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
 
+# Function to display /etc/hosts contents
+hosts_file() {
+    echo -e "\n\n\e[1;34m[+] Gathering /etc/hosts Information\e[0m"
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+    if [ -r /etc/hosts ]; then
+        echo -e "\e[1;33m/etc/hosts Contents:\e[0m"
+        cat /etc/hosts | grep -v '^#' | grep -v '^$' | while read line; do
+            if echo "$line" | grep -qE '^(127\.|::1)'; then
+                echo "$line"
+            else
+                echo -e "\e[1;31m$line (Non-local entry)\e[0m"
+            fi
+        done
+    else
+        echo -e "\e[1;31m/etc/hosts not readable\e[0m"
+    fi
+   
+    echo -e "\n\e[1;32m--------------------------------------------------------------------------\e[0m"
+}
+
 # Function to display network interfaces and IP addresses
 network_interfaces() {
     echo -e "\n\n\e[1;34m[+] Gathering Network Interfaces and IP Addresses\e[0m"
@@ -1167,6 +1187,12 @@ echo -e "\n"
 
 # Show PATH variable info
 path_info
+
+# Add some spacing
+echo -e "\n"
+
+# Function to display /etc/hosts contents
+hosts_file
 
 # Add some spacing
 echo -e "\n"

@@ -47,6 +47,10 @@ Once the script finishes, a comprehensive summary is displayed, providing an ove
   - Highlights critical configurations such as `ALL`, `NOPASSWD`, and `SETENV`.
 - **PATH Variable Check**:
   - Show PATH Variable content and highlight any non-normal entries
+- **/etc/hosts Information**:
+  - Displays the contents of `/etc/hosts`, excluding comments and empty lines.
+  - Highlights non-local entries (e.g., anything not localhost or loopback).
+  - Checks if the file is readable and reports if not.
 - **Network Interfaces, Listening Ports and Routing Table**:
   - Displays all active network interfaces with assigned IP addresses.
   - Lists open listening ports along with their associated processes.
