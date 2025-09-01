@@ -877,7 +877,7 @@ search_interesting_files() {
     # Iterate over extensions and search for files
     for ext in $file_extensions; do
         echo -e "\n\e[1;33m[!] File extension:\e[0m $ext"
-        results=$(find / -name "*$ext" 2>/dev/null | grep -v "lib\|fonts\|share\|core")
+        results=$(find / ! -path "*/proc/*" -name "*$ext" 2>/dev/null | grep -v "lib\|fonts\|share\|core")
         
         if [ -z "$results" ]; then
             echo -e "    \e[1;31mNo files found with this extension.\e[0m"
