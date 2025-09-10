@@ -674,9 +674,9 @@ cron_check() {
                 # Check if cron_file is writable
                 if [ -w "/var/spool/cron/crontabs/$cron_file" ]; then
                     echo -e "\e[1;31m[!] /var/spool/cron/crontabs/$cron_file is writable! Potential security risk.\e[0m"
-                    cron_summary="/etc/cron.daily/$cron_file is writable! Review needed."
+                    cron_summary="/var/spool/cron/crontabs/$cron_file is writable! Review needed."
                 else
-                    echo -e "    \e[1;32m/etc/cron.daily/$cron_file is not writable.\e[0m"
+                    echo -e "    \e[1;32m/var/spool/cron/crontabs/$cron_file is not writable.\e[0m"
                 fi
             done
         fi
