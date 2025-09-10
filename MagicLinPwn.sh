@@ -739,7 +739,7 @@ capabilities_check() {
         dangerous_found=0
         while IFS= read -r line; do
             # Highlight common dangerous capabilities
-            if echo "$line" | grep -qE "(cap_setuid|cap_setgid|cap_dac_override|cap_net_admin|cap_net_raw)"; then
+            if echo "$line" | grep -qE "(cap_setuid|cap_setgid|cap_dac_override|cap_net_admin|cap_net_raw|cap_sys_admin|cap_sys_chroot|cap_sys_ptrace|cap_sys_module)"; then
                 echo -e "    \e[1;31m$line\e[0m (Potentially dangerous)"
                 dangerous_found=1
             else
@@ -755,8 +755,6 @@ capabilities_check() {
 
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
-
-
 
 # Function to display mounted filesystems
 filesystems_info() {
