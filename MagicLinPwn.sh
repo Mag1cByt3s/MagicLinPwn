@@ -597,121 +597,127 @@ sgid_check() {
 cron_check() {
     echo -e "\n\n\e[1;34m[+] Checking Cron Jobs\e[0m"
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
-
-    # Initialize the summary variable
+    # Initialize the summary variable as an array for accumulation
+    cron_risks=()
     cron_summary="No writable cron jobs or misconfigurations detected."
+
+    # Helper function to check and display a single cron file/dir
+    check_cron_item() {
+        local item_path="$1"
+        local item_type="$2"  # "file" or "dir"
+        local indent="$3"
+
+        if [ "$item_type" = "file" ] && [ -f "$item_path" ]; then
+            echo -e "${indent}\e[1;33mContents of $item_path:\e[0m"
+            cat "$item_path" | sed "s/^/${indent} /"
+            if [ -w "$item_path" ]; then
+                echo -e "${indent}\e[1;31m[!] $item_path is writable! Potential security risk.\e[0m"
+                cron_risks+=("$item_path is writable")
+            else
+                echo -e "${indent} \e[1;32m$item_path is not writable.\e[0m"
+            fi
+        elif [ "$item_type" = "dir" ] && [ -d "$item_path" ]; then
+            local cron_files=$(ls "$item_path" 2>/dev/null)
+            if [ -z "$cron_files" ]; then
+                echo -e "${indent}\e[1;31mNo cron jobs found in $item_path\e[0m"
+            else
+                for cron_file in $cron_files; do
+                    local full_path="$item_path/$cron_file"
+                    echo -e "${indent}$full_path"
+                    if [ -f "$full_path" ]; then
+                        cat "$full_path" | sed "s/^/${indent} /"
+                        if [ -w "$full_path" ]; then
+                            echo -e "${indent}\e[1;31m[!] $full_path is writable! Potential security risk.\e[0m"
+                            cron_risks+=("$full_path is writable")
+                        else
+                            echo -e "${indent} \e[1;32m$full_path is not writable.\e[0m"
+                        fi
+                    fi
+                    echo  # Spacing between files
+                done
+            fi
+            # Check if the directory itself is writable
+            if [ -w "$item_path" ]; then
+                echo -e "${indent}\e[1;31m[!] Directory $item_path is writable! Potential security risk.\e[0m"
+                cron_risks+=("$item_path directory is writable")
+            fi
+        else
+            echo -e "${indent}\e[1;31m$item_path does not exist or is inaccessible.\e[0m"
+        fi
+    }
 
     # Check /etc/crontab
     echo -e "\e[1;33m[!] /etc/crontab:\e[0m"
-    if [ -f /etc/crontab ]; then
-        echo -e "    \e[1;33mContents of /etc/crontab:\e[0m"
-        cat /etc/crontab | sed 's/^/        /'
-        
-        # Check if /etc/crontab is writable
-        if [ -w /etc/crontab ]; then
-            echo -e "\e[1;31m[!] /etc/crontab is writable! Potential security risk.\e[0m"
-            cron_summary="/etc/crontab is writable! Review needed."
-        else
-            echo -e "    \e[1;32m/etc/crontab is not writable.\e[0m"
-        fi
-    else
-        echo -e "    \e[1;31m/etc/crontab does not exist.\e[0m"
-    fi
+    check_cron_item "/etc/crontab" "file" " "
+
+    # Common cron directories to check (system-wide and user-specific)
+    cron_dirs=(
+        "/etc/cron.d"
+        "/etc/cron.daily"
+        "/etc/cron.hourly"
+        "/etc/cron.monthly"
+        "/etc/cron.weekly"
+        "/var/spool/cron/crontabs"
+    )
 
     # Check system-wide cron jobs
     echo -e "\n\e[1;33m[!] System-Wide Cron Jobs:\e[0m"
-    if [ -d /etc/cron.d ]; then
-        cron_files=$(ls /etc/cron.d 2>/dev/null)
-        if [ -z "$cron_files" ]; then
-            echo -e "    \e[1;31mNo cron jobs found in /etc/cron.d\e[0m"
-        else
-            for cron_file in $cron_files; do
-                echo -e "    /etc/cron.d/$cron_file"
-                cat "/etc/cron.d/$cron_file" | sed 's/^/        /'
-
-                # Check if cron_file is writable
-                if [ -w "/etc/cron.d/$cron_file" ]; then
-                    echo -e "\e[1;31m[!] /etc/cron.d/$cron_file is writable! Potential security risk.\e[0m"
-                    cron_summary="/etc/cron.d/$cron_file is writable! Review needed."
-                else
-                    echo -e "    \e[1;32m/etc/crontab is not writable.\e[0m"
-                fi
-                    done
-                fi
-    else
-        echo -e "    \e[1;31m/etc/cron.d directory not found.\e[0m"
-    fi
-    if [ -d /etc/cron.daily ]; then
-        cron_files=$(ls /etc/cron.daily 2>/dev/null)
-        if [ -z "$cron_files" ]; then
-            echo -e "    \e[1;31mNo cron jobs found in /etc/cron.daily\e[0m"
-        else
-            for cron_file in $cron_files; do
-                echo -e "    /etc/cron.daily/$cron_file"
-                cat "/etc/cron.daily/$cron_file" | sed 's/^/        /'
-
-                # Check if cron_file is writable
-                if [ -w "/etc/cron.daily/$cron_file" ]; then
-                    echo -e "\e[1;31m[!] /etc/cron.daily/$cron_file is writable! Potential security risk.\e[0m"
-                    cron_summary="/etc/cron.daily/$cron_file is writable! Review needed."
-                else
-                    echo -e "    \e[1;32m/etc/cron.daily/$cron_file is not writable.\e[0m"
-                fi
-            done
-        fi
-    else
-        echo -e "    \e[1;31m/etc/cron.daily directory not found.\e[0m"
-    fi
-    if [ -d /var/spool/cron/crontabs ]; then
-        cron_files=$(ls /var/spool/cron/crontabs 2>/dev/null)
-        if [ -z "$cron_files" ]; then
-            echo -e "    \e[1;31mNo cron jobs found in /var/spool/cron/crontabs\e[0m"
-        else
-            for cron_file in $cron_files; do
-                echo -e "    /var/spool/cron/crontabs/$cron_file"
-                cat "/var/spool/cron/crontabs/$cron_file" | sed 's/^/        /'
-
-                # Check if cron_file is writable
-                if [ -w "/var/spool/cron/crontabs/$cron_file" ]; then
-                    echo -e "\e[1;31m[!] /var/spool/cron/crontabs/$cron_file is writable! Potential security risk.\e[0m"
-                    cron_summary="/var/spool/cron/crontabs/$cron_file is writable! Review needed."
-                else
-                    echo -e "    \e[1;32m/var/spool/cron/crontabs/$cron_file is not writable.\e[0m"
-                fi
-            done
-        fi
-    else
-        echo -e "    \e[1;31m/var/spool/cron/crontabs directory not found.\e[0m"
-    fi
+    for cron_dir in "${cron_dirs[@]}"; do
+        check_cron_item "$cron_dir" "dir" " "
+    done
 
     # Check user-specific cron jobs
     echo -e "\n\e[1;33m[!] User-Specific Cron Jobs:\e[0m"
     if command -v crontab >/dev/null 2>&1; then
         user_cron=$(crontab -l 2>/dev/null)
-        if [ $? -eq 0 ]; then
-            echo -e "    \e[1;33mCrontab entries for $(whoami):\e[0m"
-            echo "$user_cron" | sed 's/^/        /'
+        if [ $? -eq 0 ] && [ -n "$user_cron" ]; then
+            echo -e " \e[1;33mCrontab entries for $(whoami):\e[0m"
+            echo "$user_cron" | sed 's/^/ /'
         else
-            echo -e "    \e[1;31mNo crontab entries for $(whoami).\e[0m"
+            echo -e " \e[1;31mNo crontab entries for $(whoami).\e[0m"
         fi
     else
-        echo -e "    \e[1;31mCrontab is not installed or not available for this user.\e[0m"
+        echo -e " \e[1;31mCrontab is not installed or not available for this user.\e[0m"
     fi
 
-    # Check for writable cron files
+    # Check for visible cron jobs in /var/log/syslog
+    echo -e "\n\e[1;33m[!] Visible Cron Jobs from /var/log/syslog:\e[0m"
+    syslog_cron=$(grep "CRON" /var/log/syslog 2>/dev/null | tail -n 20)  # Last 20 recent entries
+    if [ -n "$syslog_cron" ]; then
+        echo -e " \e[1;33mRecent CRON executions (from syslog):\e[0m"
+        echo "$syslog_cron" | sed 's/^/ /' | while IFS= read -r line; do
+            # Highlight potential risks: e.g., non-root user or user-writable scripts
+            if echo "$line" | grep -q "(root) CMD"; then
+                echo -e " $line"  # Standard root cron
+            else
+                # Non-root or suspicious CMD (e.g., user script)
+                echo -e " \e[1;31m$line\e[0m (Non-root or user-executable script - potential abuse vector)"
+                cron_risks+=("Non-root cron execution detected in syslog")
+            fi
+        done
+    else
+        echo -e " \e[1;31mNo CRON entries found in /var/log/syslog.\e[0m"
+    fi
+
+    # Check for writable cron files (improved find with exclusions)
     echo -e "\n\e[1;33m[!] Writable Cron Files:\e[0m"
-    writable_cron_files=$(find /etc/cron* /var/spool/cron/ -type f -writable 2>/dev/null)
+    writable_cron_files=$(find /etc/cron* /var/spool/cron/ \( -path /proc -o -path /sys -o -path /nix -o -path /run \) -prune -o -type f -writable -print 2>/dev/null)
     if [ -z "$writable_cron_files" ]; then
         echo -e " \e[1;31mNo writable cron files found.\e[0m"
     else
         echo -e "\e[1;31m[!] Writable cron files detected! Potential security risk:\e[0m"
         echo "$writable_cron_files" | sed 's/^/ /'
-        cron_summary="Writable cron files detected! Review needed."
+        cron_risks+=("Multiple writable cron files detected")
     fi
 
     # Give user a hint to also check for cronjobs with pspy
     echo -e "\n\e[1;31m[!] Remember to also check for non-visible cronjobs using pspy!\e[0m"
-    echo -e "\e[1;31m      ./pspy64 -pf -i 1000\e[0m"
+    echo -e " \e[1;31m./pspy64 -pf -i 1000\e[0m"
+
+    # Update summary based on accumulated risks
+    if [ ${#cron_risks[@]} -gt 0 ]; then
+        cron_summary="Risks detected: ${cron_risks[*]}. Review needed."
+    fi
 
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 }

@@ -75,6 +75,7 @@ Once the script finishes, a comprehensive summary is displayed, providing an ove
   - **System-Wide Cron Jobs**: Lists cron jobs from `/etc/cron.d` and their contents.
   - **User-Specific Cron Jobs**: Checks the current user’s crontab for entries.
   - **/etc/crontab Analysis**: Displays the contents of `/etc/crontab` and checks if it is writable.
+  - **Visible Cron Jobs in /var/log/syslog**: Searches `/var/log/syslog` for recent CRON executions.
   - **Writable Cron Files**: Identifies writable cron files across `/etc/cron*` directories and highlights potential security risks.
 - **Capabilities Check**:
   - Finds and lists all files with Linux capabilities.
