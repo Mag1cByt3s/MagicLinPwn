@@ -711,6 +711,7 @@ cron_check() {
 
     # Give user a hint to also check for cronjobs with pspy
     echo -e "\n\e[1;31m[!] Remember to also check for non-visible cronjobs using pspy!\e[0m"
+    echo -e "\e[1;31m      ./pspy64 -pf -i 1000\e[0m"
 
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
