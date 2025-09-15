@@ -48,6 +48,7 @@ Once the script finishes, a comprehensive summary is displayed, providing an ove
 - **Sudo Privileges Check**:
   - Checks if `sudo` is installed, displays the sudo version and if the user can execute `sudo` commands without a password.
   - Highlights critical configurations such as `ALL`, `NOPASSWD`, and `SETENV`.
+  - Checks sudo version for known vulnerabilities.
 - **PATH Variable Check**:
   - Show PATH Variable content and highlight any non-normal entries
 - **/etc/hosts Information**:

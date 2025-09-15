@@ -306,10 +306,8 @@ logged_users_info() {
 sudo_check() {
     echo -e "\n\n\e[1;34m[+] Checking Sudo Privileges\e[0m"
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
-
     # Initialize the summary variable
     sudo_priv_summary="No unusual sudo privileges detected."
-
     # Check if sudo is installed
     if ! command -v sudo >/dev/null 2>&1; then
         echo -e "\e[1;31m[-] Sudo is not installed on this system.\e[0m"
@@ -317,19 +315,86 @@ sudo_check() {
         echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
         return
     fi
-
     # Get and display sudo version number
     sudo_version=$(sudo --version | head -n 1 | awk '{print $3}')
     echo -e "\e[1;33m[!] Sudo Version:\e[0m $sudo_version"
 
+    # Function for version less than comparison (using sort -V)
+    verlt() {
+        [ "$1" = "$2" ] && return 1 || [ "$1" = "$(echo -e "$1\n$2" | sort -V | head -n1)" ]
+    }
+
+    # Check for known vulnerabilities
+    echo -e "\n\e[1;34m[+] Checking for Known Sudo Vulnerabilities\e[0m"
+    vuln_detected=false
+    vuln_summary=""
+
+    # CVE-2019-14287 (Sudo Policy Bypass)
+    if verlt "$sudo_version" "1.8.28"; then
+        echo -e "\e[1;31m[!] Vulnerable to CVE-2019-14287: Sudo Policy Bypass.\e[0m"
+        echo -e "    Affected versions: < 1.8.28"
+        echo -e "    This allows bypassing restrictions to run commands as root using -u#-1 or similar."
+        echo -e "    Affected examples: Versions prior to 1.8.28 on various distributions."
+        vuln_detected=true
+        vuln_summary="${vuln_summary}${vuln_summary:+ }CVE-2019-14287"
+    fi
+
+    # CVE-2021-3156 (Heap-based Buffer Overflow - Baron Samedit)
+    if verlt "$sudo_version" "1.9.5p2"; then
+        echo -e "\e[1;31m[!] Potentially vulnerable to CVE-2021-3156: Heap-based Buffer Overflow.\e[0m"
+        echo -e "    Affected versions: Legacy 1.7.7 to 1.8.31p2, Stable 1.9.0 to 1.9.5p1"
+        echo -e "    This allows privilege escalation via sudoedit."
+        echo -e "    Affected examples:"
+        echo -e "      - 1.8.31 (Ubuntu 20.04)"
+        echo -e "      - 1.8.27 (Debian 10)"
+        echo -e "      - 1.9.2 (Fedora 33)"
+        echo -e "      - and others"
+        vuln_detected=true
+        vuln_summary="${vuln_summary}${vuln_summary:+ }CVE-2021-3156"
+    fi
+
+    # CVE-2023-22809 (sudoedit arbitrary file edit)
+    if verlt "$sudo_version" "1.9.12p2"; then
+        echo -e "\e[1;31m[!] Vulnerable to CVE-2023-22809: sudoedit can edit arbitrary files.\e[0m"
+        echo -e "    Affected versions: 1.8.0 to 1.9.12p1"
+        echo -e "    Allows malicious users with sudoedit privileges to edit arbitrary files, potentially leading to privilege escalation."
+        vuln_detected=true
+        vuln_summary="${vuln_summary}${vuln_summary:+ }CVE-2023-22809"
+    fi
+
+    # CVE-2025-32462 (Policy-Check Flaw)
+    if ! verlt "$sudo_version" "1.8.8" && verlt "$sudo_version" "1.9.17p1"; then
+        echo -e "\e[1;31m[!] Vulnerable to CVE-2025-32462: Policy-Check Flaw.\e[0m"
+        echo -e "    Affected versions: 1.8.8 through 1.9.17"
+        echo -e "    Allows unauthorized users to gain elevated privileges in certain configurations."
+        vuln_detected=true
+        vuln_summary="${vuln_summary}${vuln_summary:+ }CVE-2025-32462"
+    fi
+
+    # CVE-2025-32463 (Chroot Privilege Escalation)
+    if ! verlt "$sudo_version" "1.9.14" && verlt "$sudo_version" "1.9.17p1"; then
+        echo -e "\e[1;31m[!] Vulnerable to CVE-2025-32463: Chroot Privilege Escalation.\e[0m"
+        echo -e "    Affected versions: 1.9.14 to 1.9.17 (including p-revisions)"
+        echo -e "    Allows local users to obtain root access by tricking sudo into loading arbitrary shared objects or configs."
+        vuln_detected=true
+        vuln_summary="${vuln_summary}${vuln_summary:+ }CVE-2025-32463"
+    fi
+
+    if ! $vuln_detected; then
+        echo -e "\e[1;32m[-] No known sudo vulnerabilities detected for this version.\e[0m"
+    fi
+
+    # Update summary if vulnerabilities detected
+    if $vuln_detected; then
+        sudo_priv_summary="${sudo_priv_summary} Potential vulnerabilities: ${vuln_summary}. Review and patch immediately."
+    fi
+
     # Check if the user can run `sudo -l` without a password
     sudo_output=$(sudo -n -l 2>/dev/null)
     if [ $? -eq 0 ]; then
-        echo -e "\e[1;33m[!] User can run the following \e[1;31msudo\e[0m \e[1;33mcommands without a password:\e[0m"
-
+        echo -e "\e\n[1;33m[!] User can run the following \e[1;31msudo\e[0m \e[1;33mcommands without a password:\e[0m"
         # Update the summary
-        sudo_priv_summary="User has sudo privileges without a password. Review needed."
-
+        sudo_priv_summary="User has sudo privileges without a password. Review needed. ${vuln_summary:+Potential vulnerabilities: ${vuln_summary}. }"
         # Process the output line by line and highlight critical elements
         while IFS= read -r line; do
             # Highlight critical elements using printf with proper ANSI codes
@@ -339,14 +404,12 @@ sudo_check() {
                 -e 's/SETENV/\x1b[1;33mSETENV\x1b[0m/g' \
                 -e 's/env_keep/\x1b[1;31menv_keep\x1b[0m/g' \
                 -e 's/passwd_timeout=0/\x1b[1;35mpasswd_timeout=0\x1b[0m/g')
-            
             # Print the highlighted line with proper indentation
-            printf "    %b\n" "$line"
+            printf " %b\n" "$line"
         done <<< "$sudo_output"
     else
         echo -e "\e[1;31m[-] User cannot run sudo commands without a password.\e[0m"
     fi
-
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
 
