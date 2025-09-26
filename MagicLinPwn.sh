@@ -930,6 +930,77 @@ check_pwnkit_vuln() {
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
 
+# Function to check for CVE-2017-16995 vulnerability
+check_cve_2017_16995_vuln() {
+    echo -e "\n\n\e[1;34m[+] Checking for CVE-2017-16995 Vulnerability\e[0m"
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+
+    # Initialize summary variable
+    cve_2017_16995_summary="CVE-2017-16995 check completed."
+
+    # Get kernel version
+    kernel_version=$(uname -r)
+    echo -e "\e[1;33m[+] Kernel version:\e[0m $kernel_version"
+
+    # Extract major.minor version for comparison
+    kernel_major_minor=$(echo "$kernel_version" | cut -d'-' -f1)
+    
+    # Check if kernel version is vulnerable (< 4.4.0-116)
+    # We need to check both the kernel version and Ubuntu-specific version
+    if [[ "$kernel_major_minor" < "4.4" ]]; then
+        echo -e "\e[1;31m[!] System is potentially vulnerable to CVE-2017-16995\e[0m"
+        echo -e "\e[1;36m[-> ExploitDB]:\e[0m https://www.exploit-db.com/exploits/44298"
+        echo -e "\e[1;33m[!] Vulnerability allows local privilege escalation via BPF ALU op sign extension bug\e[0m"
+        cve_2017_16995_summary="System is potentially vulnerable to CVE-2017-16995 (BPF ALU op sign extension bug)."
+    elif [[ "$kernel_major_minor" == "4.4" ]]; then
+        # For 4.4.x kernels, check Ubuntu-specific version
+        if [[ "$kernel_version" =~ 4\.4\.0-([0-9]+) ]]; then
+            ubuntu_version=${BASH_REMATCH[1]}
+            if [[ $ubuntu_version -lt 116 ]]; then
+                echo -e "\e[1;31m[!] System is vulnerable to CVE-2017-16995\e[0m"
+                echo -e "\e[1;36m[-> ExploitDB]:\e[0m https://www.exploit-db.com/exploits/44298"
+                echo -e "\e[1;33m[!] Vulnerability allows local privilege escalation via BPF ALU op sign extension bug\e[0m"
+                cve_2017_16995_summary="System is vulnerable to CVE-2017-16995 (BPF ALU op sign extension bug)."
+            else
+                echo -e "\e[1;32m[+] System is not vulnerable to CVE-2017-16995\e[0m"
+                cve_2017_16995_summary="System is not vulnerable to CVE-2017-16995."
+            fi
+        else
+            echo -e "\e[1;33m[?] Unable to determine Ubuntu-specific kernel version. Manual verification required.\e[0m"
+            cve_2017_16995_summary="Unable to determine Ubuntu-specific kernel version for CVE-2017-16995 check."
+        fi
+    else
+        echo -e "\e[1;32m[+] System is not vulnerable to CVE-2017-16995\e[0m"
+        cve_2017_16995_summary="System is not vulnerable to CVE-2017-16995."
+    fi
+
+    # Additional checks for BPF functionality
+    if [ -d "/proc/sys/net/core/bpf_jit_enable" ] 2>/dev/null; then
+        bpf_jit_status=$(cat /proc/sys/net/core/bpf_jit_enable 2>/dev/null)
+        if [ "$bpf_jit_status" == "1" ]; then
+            echo -e "\e[1;33m[!] BPF JIT is enabled, which may increase exploitation risk\e[0m"
+        fi
+    fi
+
+    # Check for BPF-related files that might indicate vulnerability
+    if [ -r "/proc/version_signature" ] 2>/dev/null; then
+        version_signature=$(cat /proc/version_signature 2>/dev/null)
+        if [[ "$version_signature" == *"Ubuntu 4.4.0-"* ]]; then
+            echo -e "\e[1;33m[+] Ubuntu kernel detected: $version_signature\e[0m"
+            # Extract Ubuntu version from signature
+            if [[ "$version_signature" =~ Ubuntu\ 4\.4\.0-([0-9]+) ]]; then
+                ubuntu_ver=${BASH_REMATCH[1]}
+                if [[ $ubuntu_ver -lt 116 ]]; then
+                    echo -e "\e[1;31m[!] Ubuntu kernel version is vulnerable to CVE-2017-16995\e[0m"
+                    cve_2017_16995_summary="Ubuntu kernel version is vulnerable to CVE-2017-16995."
+                fi
+            fi
+        fi
+    fi
+
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+}
+
 # Function to display mounted filesystems
 filesystems_info() {
     echo -e "\n\n\e[1;34m[+] Gathering Filesystem Information\e[0m"
@@ -1382,6 +1453,7 @@ print_summary() {
     echo -e "\e[1;33m[Capabilities]:\e[0m $(highlight_summary "$capabilities_summary")"
     echo -e "\e[1;33m[Screen Vulnerability]:\e[0m $(highlight_summary "$screen_summary")"
     echo -e "\e[1;33m[PwnKit Vulnerability]:\e[0m $(highlight_summary "$pwnkit_summary")"
+    echo -e "\e[1;33m[CVE-2017-16995 Vulnerability]:\e[0m $(highlight_summary "$cve_2017_16995_summary")"
     echo -e "\e[1;33m[Writable Files]:\e[0m $(highlight_summary "$writable_files_dirs_summary")"
     echo -e "\e[1;33m[Interesting Files]:\e[0m $(highlight_summary "$interesting_files_summary")"
     echo -e "\e[1;33m[Sensitive Content]:\e[0m $(highlight_summary "$sensitive_content_summary")"
@@ -1512,6 +1584,12 @@ echo -e "\n"
 
 # check for PwnKit vulnerability
 check_pwnkit_vuln
+
+# Add some spacing
+echo -e "\n"
+
+# check for CVE-2017-16995 vulnerability
+check_cve_2017_16995_vuln
 
 # Add some spacing
 echo -e "\n"
