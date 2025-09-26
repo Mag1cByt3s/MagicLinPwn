@@ -82,10 +82,12 @@ Once the script finishes, a comprehensive summary is displayed, providing an ove
   - Finds and lists all files with Linux capabilities.
   - Highlights potentially dangerous capabilities (e.g., `cap_setuid`, `cap_net_raw`, `cap_dac_override`).
   - Includes a timeout mechanism to skip the check if it takes too long.
-- **Vulnerable Services Check (Starting with Screen 4.5.0)**:
+- **Vulnerable Services Check**:
   - Detects if `screen` is installed and checks if version is exactly `4.05.00` (`4.5.0`).
-  - If vulnerable (**CVE-2017-5618**), highlights the issue and suggests using the `screenroot.sh` exploit from Exploit-DB for root escalation.
-  - Displays version output and clear non-vulnerable message if safe.
+    - If vulnerable (**CVE-2017-5618**), highlights the issue and suggests using the `screenroot.sh` exploit from Exploit-DB for root escalation.
+    - Displays version output and clear non-vulnerable message if safe.
+  - Detects if `pkexec` is installed and checks if version is below `0.120`.
+    - If vulnerable (**CVE-2021-4034**), highlights the issue and suggests using the `PwnKit` exploit from Exploit-DB or GitHub for root escalation.
 - **Filesystem Information**:
   - Enumerates block devices and mounted filesystems.
   - Displays concise details including names, sizes, types, filesystems, mount points, usage, and options.

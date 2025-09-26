@@ -872,6 +872,64 @@ check_screen_vuln() {
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
 
+# Function to check for PwnKit vulnerability (CVE-2021-4034)
+check_pwnkit_vuln() {
+    echo -e "\n\n\e[1;34m[+] Checking for PwnKit Vulnerability (CVE-2021-4034)\e[0m"
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+
+    # Initialize summary variable
+    pwnkit_summary="PwnKit check completed."
+
+    # Check if pkexec is installed
+    if ! command -v pkexec &> /dev/null; then
+        echo -e "\e[1;33m[-] pkexec not found. System not vulnerable to PwnKit.\e[0m"
+        pwnkit_summary="pkexec not found. System not vulnerable to PwnKit."
+        return
+    fi
+
+    # Get pkexec version
+    pkexec_version=$(pkexec --version | head -n1 | awk '{print $NF}')
+    echo -e "\e[1;33mpkexec version:\e[0m $pkexec_version"
+
+    # Check if version is vulnerable (versions before 0.105 are vulnerable)
+    # Note: The versioning scheme may vary between distributions
+    # We'll use a more comprehensive check
+        # Check if version is vulnerable (all < 0.120 are vulnerable unless patched downstream)
+    if [[ "$pkexec_version" =~ ^0\.([0-9]{1,2}|1[01][0-9])$ ]]; then
+        echo -e "\e[1;33mpkexec version $pkexec_version is older than 0.120.\e[0m"
+        echo -e "\e[1;33m[!] This version is *potentially vulnerable* unless your distro has backported the patch.\e[0m"
+
+        # Behavior test: run pkexec without arguments
+        if pkexec 2>&1 | grep -q "Usage:"; then
+            echo -e "\e[1;32m[+] pkexec appears patched (prints Usage correctly).\e[0m"
+            pwnkit_summary="pkexec $pkexec_version — appears patched (Usage output OK)."
+        else
+            echo -e "\e[1;31m[!] pkexec behavior indicates vulnerability (does not print Usage).\e[0m"
+            echo -e "\e[1;36m[-> ExploitDB]:\e[0m https://www.exploit-db.com/exploits/50649"
+            echo -e "\e[1;36m[-> GitHub PoC]:\e[0m https://github.com/berdav/CVE-2021-4034"
+            pwnkit_summary="pkexec $pkexec_version — vulnerable to CVE-2021-4034."
+        fi
+    else
+        echo -e "\e[1;32m[+] pkexec $pkexec_version is >= 0.120 (safe).\e[0m"
+        pwnkit_summary="pkexec $pkexec_version — safe."
+    fi
+
+    # Additional heuristic checks for vulnerability
+    # Check if polkit policies directory is writable
+    if [ -w "/usr/share/polkit-1/actions/" ] 2>/dev/null; then
+        echo -e "\e[1;31m[!] Write access to polkit actions directory - potential PwnKit exploitation vector\e[0m"
+        pwnkit_summary+=" Write access to polkit actions directory."
+    fi
+
+    # Check for GIO modules path vulnerability
+    if [ -w "/usr/lib/x86_64-linux-gnu/gio/modules/" ] 2>/dev/null; then
+        echo -e "\e[1;31m[!] Write access to GIO modules directory - potential PwnKit exploitation vector\e[0m"
+        pwnkit_summary+=" Write access to GIO modules directory."
+    fi
+
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+}
+
 # Function to display mounted filesystems
 filesystems_info() {
     echo -e "\n\n\e[1;34m[+] Gathering Filesystem Information\e[0m"
@@ -1447,6 +1505,12 @@ echo -e "\n"
 
 # check for vulnerable screen version
 check_screen_vuln
+
+# Add some spacing
+echo -e "\n"
+
+# check for PwnKit vulnerability
+check_pwnkit_vuln
 
 # Add some spacing
 echo -e "\n"
