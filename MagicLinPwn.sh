@@ -1381,6 +1381,7 @@ print_summary() {
     echo -e "\e[1;33m[Cron Jobs]:\e[0m $(highlight_summary "$cron_summary")"
     echo -e "\e[1;33m[Capabilities]:\e[0m $(highlight_summary "$capabilities_summary")"
     echo -e "\e[1;33m[Screen Vulnerability]:\e[0m $(highlight_summary "$screen_summary")"
+    echo -e "\e[1;33m[PwnKit Vulnerability]:\e[0m $(highlight_summary "$pwnkit_summary")"
     echo -e "\e[1;33m[Writable Files]:\e[0m $(highlight_summary "$writable_files_dirs_summary")"
     echo -e "\e[1;33m[Interesting Files]:\e[0m $(highlight_summary "$interesting_files_summary")"
     echo -e "\e[1;33m[Sensitive Content]:\e[0m $(highlight_summary "$sensitive_content_summary")"
