@@ -94,10 +94,17 @@ Once the script finishes, a comprehensive summary is displayed, providing an ove
     - If vulnerable, highlights the issue and provides links to exploit resources (Exploit-DB).
     - Performs additional checks for BPF JIT status and Ubuntu-specific kernel versions.
     - Displays version output and clear non-vulnerable message if safe.
-  - Checks kernel version for **Dirty Pipe vulnerability (CVE-2022-0847)** in Linux kernels 5.8 to 5.17.
+  - Checks kernel version for **Dirty Pipe vulnerability (CVE-2022-0847)** in Linux kernels `5.8` to `5.17`.
     - If vulnerable, highlights the issue and provides links to exploit resources (Exploit-DB, GitHub PoC).
     - Vulnerability allows overwriting data in arbitrary read-only files, leading to potential privilege escalation.
     - Displays version output and clear non-vulnerable message if safe.
+  - Checks kernel version for Dirty COW vulnerability (**CVE-2016-5195**) in Linux kernels `2.6.22`+ before patch.
+    - Uses robust version comparison with `sort -V` for accurate detection.
+    - If potentially vulnerable, highlights the issue and provides links to official NVD reference.
+    - Performs vendor-specific package checks (`dpkg`/`rpm`) for backported fixes.
+    - Distinguishes between upstream fixes and vendor backports.
+    - Provides guidance to verify with vendor security advisories.
+    - Displays version output and clear patched status when upstream fix or vendor backport is detected.
 - **Filesystem Information**:
   - Enumerates block devices and mounted filesystems.
   - Displays concise details including names, sizes, types, filesystems, mount points, usage, and options.

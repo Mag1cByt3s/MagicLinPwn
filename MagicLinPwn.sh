@@ -1058,6 +1058,111 @@ check_dirty_pipe() {
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
 
+# Function to check for Dirty COW vulnerability (CVE-2016-5195)
+check_dirty_cow() {
+
+    # robust version compare helper using sort -V
+    ver_lt() {
+        # returns 0 (true) if $1 < $2
+        # use sort -V for version comparison
+        [ "$(printf '%s\n%s\n' "$1" "$2" | sort -V | head -n1)" != "$2" ]
+    }
+    
+    # normalize kernel string to major.minor.patch (best-effort)
+    kernel_normalize() {
+        # Input: uname -r (e.g. "4.4.0-121-generic")
+        # Output: "4.4.0"
+        local k="$1"
+        # extract first three numeric fields
+        # allow things like "4.8", "4.8.3", "4.4.0-121-generic"
+        # fallback: if cannot parse, return the raw string
+        if [[ "$k" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+) ]]; then
+            printf "%s.%s.%s" "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}" "${BASH_REMATCH[3]}"
+        elif [[ "$k" =~ ^([0-9]+)\.([0-9]+) ]]; then
+            printf "%s.%s.0" "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}"
+        else
+            printf "%s" "$k"
+        fi
+    }
+
+    echo -e "\n\n\e[1;34m[+] Checking for Dirty COW (CVE-2016-5195)\e[0m"
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+
+    dirty_cow_summary="Dirty COW check completed."
+
+    # get running kernel
+    running_uname="$(uname -r 2>/dev/null || echo unknown)"
+    running_kernel="$(kernel_normalize "$running_uname")"
+    echo -e "\e[1;33m[+] uname -r:\e[0m $running_uname"
+    echo -e "\e[1;33m[+] normalized kernel:\e[0m $running_kernel"
+
+    # upstream thresholds (indicators only)
+    # upstream fixed versions (indicators): 4.8.3 (mainline), 4.7.9, 4.4.x backports, and many distro-specific backports
+    upstream_safe_main="4.8.3"
+
+    vulnerable_indicator=false
+
+    # If running kernel < 4.8.3 (upstream), it's an indicator of potential vulnerability
+    if ver_lt "$running_kernel" "$upstream_safe_main"; then
+        vulnerable_indicator=true
+        echo -e "\e[1;33m[!] Kernel is older than upstream fixed version $upstream_safe_main - indicator of potential vulnerability.\e[0m"
+    else
+        echo -e "\e[1;32m[+] Kernel is >= $upstream_safe_main (upstream). This generally indicates the upstream fix is present.\e[0m"
+    fi
+
+    # Try to consult package manager for vendor fixes (best-effort)
+    if command -v dpkg-query &>/dev/null; then
+        # Debian/Ubuntu family
+        pkg="$(dpkg-query -S /boot/vmlinuz-$(uname -r) 2>/dev/null | awk -F: '{print $1}' | head -n1)"
+        if [ -n "$pkg" ]; then
+            echo -e "\e[1;33m[+] Detected kernel package:\e[0m $pkg"
+            # look for changelog mentioning Dirty COW CVE (best-effort)
+            if dpkg-query -W -f='${Version}\n' "$pkg" 2>/dev/null; then
+                if dpkg -s "$pkg" 2>/dev/null | grep -i "CVE-2016-5195" -q; then
+                    echo -e "\e[1;32m[+] Package changelog mentions CVE-2016-5195 - vendor backport applied.\e[0m"
+                    vulnerable_indicator=false
+                else
+                    echo -e "\e[1;33m[?] No explicit CVE mention in package metadata. Check vendor security advisory for $pkg.\e[0m"
+                fi
+            fi
+        fi
+    elif command -v rpm &>/dev/null; then
+        # RHEL/CentOS/Fedora family
+        # try to detect RPM package providing this kernel
+        pkg="$(rpm -qf /boot/vmlinuz-$(uname -r) 2>/dev/null || true)"
+        if [ -n "$pkg" ]; then
+            echo -e "\e[1;33m[+] Detected kernel package:\e[0m $pkg"
+            # try to check changelog for CVE mention (may require rpm-changelog)
+            if rpm -q --changelog "$pkg" 2>/dev/null | grep -i "CVE-2016-5195" -q; then
+                echo -e "\e[1;32m[+] RPM changelog mentions CVE-2016-5195 - vendor backport applied.\e[0m"
+                vulnerable_indicator=false
+            else
+                echo -e "\e[1;33m[?] No CVE mention in RPM changelog. Check vendor advisory for $pkg.\e[0m"
+            fi
+        fi
+    else
+        echo -e "\e[1;33m[?] No package manager detected (dpkg/rpm). Rely on uname + vendor advisories.\e[0m"
+    fi
+
+    # Final decision (best-effort)
+    if [ "$vulnerable_indicator" = true ]; then
+        echo -e "\e[1;31m[!] System may be vulnerable to Dirty COW (CVE-2016-5195) — treat as HIGH RISK until vendor confirms.\e[0m"
+        echo -e "\e[1;36m[-> Reference]:\e[0m https://nvd.nist.gov/vuln/detail/CVE-2016-5195"
+        echo -e "\e[1;36m[-> GitHub GistPoC]:\e[0m https://gist.github.com/rverton/e9d4ff65d703a9084e85fa9df083c679"
+        dirty_cow_summary="System may be vulnerable to Dirty COW (CVE-2016-5195). Confirm with vendor patch/changelog."
+    else
+        echo -e "\e[1;32m[+] Kernel appears to include upstream fix or vendor backport for Dirty COW. Confirm via vendor advisory.\e[0m"
+        dirty_cow_summary="Kernel appears patched (upstream or vendor backport); verify with vendor advisory."
+    fi
+
+    # Optional: print distribution signature if present
+    if [ -f /proc/version_signature ]; then
+        echo -e "\e[1;33m[+] Distribution signature:\e[0m $(cat /proc/version_signature 2>/dev/null)"
+    fi
+
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+}
+
 # Function to display mounted filesystems
 filesystems_info() {
     echo -e "\n\n\e[1;34m[+] Gathering Filesystem Information\e[0m"
@@ -1512,6 +1617,7 @@ print_summary() {
     echo -e "\e[1;33m[PwnKit Vulnerability]:\e[0m $(highlight_summary "$pwnkit_summary")"
     echo -e "\e[1;33m[CVE-2017-16995 Vulnerability]:\e[0m $(highlight_summary "$cve_2017_16995_summary")"
     echo -e "\e[1;33m[Dirty Pipe Vulnerability]:\e[0m $(highlight_summary "$dirty_pipe_summary")"
+    echo -e "\e[1;33m[Dirty COW Vulnerability]:\e[0m $(highlight_summary "$dirty_cow_summary")"
     echo -e "\e[1;33m[Writable Files]:\e[0m $(highlight_summary "$writable_files_dirs_summary")"
     echo -e "\e[1;33m[Interesting Files]:\e[0m $(highlight_summary "$interesting_files_summary")"
     echo -e "\e[1;33m[Sensitive Content]:\e[0m $(highlight_summary "$sensitive_content_summary")"
@@ -1654,6 +1760,12 @@ echo -e "\n"
 
 # check for Dirty Pipe vulnerability
 check_dirty_pipe
+
+# Add some spacing
+echo -e "\n"
+
+# check for Dirty COW vulnerability
+check_dirty_cow
 
 # Add some spacing
 echo -e "\n"
