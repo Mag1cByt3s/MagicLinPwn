@@ -1001,6 +1001,63 @@ check_cve_2017_16995_vuln() {
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
 
+# Function to check for Dirty Pipe vulnerability (CVE-2022-0847)
+check_dirty_pipe() {
+    echo -e "\n\n\e[1;34m[+] Checking for Dirty Pipe Vulnerability (CVE-2022-0847)\e[0m"
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+
+    # Initialize summary variable
+    dirty_pipe_summary="Dirty Pipe check completed."
+
+    # Get kernel version
+    kernel_version=$(uname -r)
+    echo -e "\e[1;33m[+] Kernel version:\e[0m $kernel_version"
+
+    # Extract major.minor.patch version for comparison
+    kernel_major=$(echo "$kernel_version" | cut -d'.' -f1)
+    kernel_minor=$(echo "$kernel_version" | cut -d'.' -f2)
+    kernel_patch=$(echo "$kernel_version" | cut -d'.' -f3 | cut -d'-' -f1)
+
+    # Check if kernel version is in the vulnerable range (5.8 to 5.17)
+    # Vulnerable: 5.8 <= version < 5.17
+    vulnerable=0
+    
+    if [[ $kernel_major -eq 5 ]]; then
+        if [[ $kernel_minor -ge 8 && $kernel_minor -lt 17 ]]; then
+            vulnerable=1
+        elif [[ $kernel_minor -eq 17 && $kernel_patch -lt 0 ]]; then
+            vulnerable=1
+        fi
+    elif [[ $kernel_major -eq 5 && $kernel_minor -eq 17 && $kernel_patch -eq 0 ]]; then
+        # Special case for 5.17.0 which is still vulnerable
+        vulnerable=1
+    fi
+
+    if [[ $vulnerable -eq 1 ]]; then
+        echo -e "\e[1;31m[!] System is vulnerable to Dirty Pipe (CVE-2022-0847)\e[0m"
+        echo -e "\e[1;36m[-> ExploitDB]:\e[0m https://www.exploit-db.com/exploits/50808"
+        echo -e "\e[1;36m[-> GitHub PoC]:\e[0m https://github.com/AlexisAhmed/CVE-2022-0847-DirtyPipe-Exploits"
+        echo -e "\e[1;33m[!] Vulnerability allows overwriting data in arbitrary read-only files\e[0m"
+        echo -e "\e[1;33m[!] This can lead to privilege escalation by overwriting suid binaries\e[0m"
+        dirty_pipe_summary="System is vulnerable to Dirty Pipe (CVE-2022-0847)."
+    else
+        echo -e "\e[1;32m[+] System is not vulnerable to Dirty Pipe (CVE-2022-0847)\e[0m"
+        dirty_pipe_summary="System is not vulnerable to Dirty Pipe (CVE-2022-0847)."
+    fi
+
+    # Additional check: Verify if the system has been patched
+    # Check for the specific commit that fixed the vulnerability
+    # This is a more precise check but requires access to kernel source info
+    
+    # Check if we can determine distribution-specific patching
+    if [ -f "/proc/version_signature" ]; then
+        version_signature=$(cat /proc/version_signature 2>/dev/null)
+        echo -e "\e[1;33m[+] Distribution info:\e[0m $version_signature"
+    fi
+
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+}
+
 # Function to display mounted filesystems
 filesystems_info() {
     echo -e "\n\n\e[1;34m[+] Gathering Filesystem Information\e[0m"
@@ -1454,6 +1511,7 @@ print_summary() {
     echo -e "\e[1;33m[Screen Vulnerability]:\e[0m $(highlight_summary "$screen_summary")"
     echo -e "\e[1;33m[PwnKit Vulnerability]:\e[0m $(highlight_summary "$pwnkit_summary")"
     echo -e "\e[1;33m[CVE-2017-16995 Vulnerability]:\e[0m $(highlight_summary "$cve_2017_16995_summary")"
+    echo -e "\e[1;33m[Dirty Pipe Vulnerability]:\e[0m $(highlight_summary "$dirty_pipe_summary")"
     echo -e "\e[1;33m[Writable Files]:\e[0m $(highlight_summary "$writable_files_dirs_summary")"
     echo -e "\e[1;33m[Interesting Files]:\e[0m $(highlight_summary "$interesting_files_summary")"
     echo -e "\e[1;33m[Sensitive Content]:\e[0m $(highlight_summary "$sensitive_content_summary")"
@@ -1590,6 +1648,12 @@ echo -e "\n"
 
 # check for CVE-2017-16995 vulnerability
 check_cve_2017_16995_vuln
+
+# Add some spacing
+echo -e "\n"
+
+# check for Dirty Pipe vulnerability
+check_dirty_pipe
 
 # Add some spacing
 echo -e "\n"
