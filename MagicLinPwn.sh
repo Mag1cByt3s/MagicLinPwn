@@ -53,6 +53,11 @@ ssh_keys_summary="No SSH private keys found."
 docker_summary="Not running in a Docker container."
 env_vars_summary="No sensitive environment variables detected."
 systemd_summary="No writable systemd files or misconfigurations detected."
+pwnkit_summary="PwnKit check not performed."
+cve_2017_16995_summary="CVE-2017-16995 check not performed."
+dirty_pipe_summary="Dirty Pipe check not performed."
+dirty_cow_summary="Dirty COW check not performed."
+netfilter_summary="Netfilter vulnerability check not performed."
 
 # Function to detect if running inside a Docker container
 detect_docker_container() {
@@ -1163,6 +1168,128 @@ check_dirty_cow() {
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
 
+# Function to check for Netfilter vulnerabilities
+check_netfilter_vulns() {
+    echo -e "\n\n\e[1;34m[+] Checking for Netfilter Vulnerabilities\e[0m"
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+
+    # Initialize summary variable
+    netfilter_summary="Netfilter vulnerability check completed."
+
+    # Get kernel version
+    kernel_version=$(uname -r)
+    echo -e "\e[1;33m[+] Kernel version:\e[0m $kernel_version"
+
+    # Extract major.minor.patch version for comparison
+    kernel_major=$(echo "$kernel_version" | cut -d'.' -f1)
+    kernel_minor=$(echo "$kernel_version" | cut -d'.' -f2)
+    kernel_patch=$(echo "$kernel_version" | cut -d'.' -f3 | cut -d'-' -f1)
+
+    # Function to compare versions
+    ver_lt() {
+        [ "$(printf '%s\n%s\n' "$1" "$2" | sort -V | head -n1)" != "$2" ]
+    }
+    
+    ver_le() {
+        [ "$(printf '%s\n%s\n' "$1" "$2" | sort -V | head -n1)" = "$1" ]
+    }
+    
+    ver_gt() {
+        [ "$(printf '%s\n%s\n' "$1" "$2" | sort -V | head -n1)" != "$1" ]
+    }
+    
+    ver_ge() {
+        [ "$(printf '%s\n%s\n' "$1" "$2" | sort -V | head -n1)" = "$2" ]
+    }
+
+    # Normalize kernel version for comparison
+    normalized_kernel="$kernel_major.$kernel_minor.$kernel_patch"
+    
+    # Check for CVE-2021-22555 (Vulnerable: 2.6 - 5.11)
+    cve_2021_22555_vulnerable=false
+    if [[ $kernel_major -ge 2 && $kernel_major -le 5 ]]; then
+        if [[ $kernel_major -eq 2 && $kernel_minor -ge 6 ]]; then
+            cve_2021_22555_vulnerable=true
+        elif [[ $kernel_major -eq 3 || $kernel_major -eq 4 ]]; then
+            cve_2021_22555_vulnerable=true
+        elif [[ $kernel_major -eq 5 && $kernel_minor -le 11 ]]; then
+            cve_2021_22555_vulnerable=true
+        elif [[ $kernel_major -eq 5 && $kernel_minor -eq 11 && $kernel_patch -eq 0 ]]; then
+            cve_2021_22555_vulnerable=true
+        fi
+    fi
+
+    if [[ "$cve_2021_22555_vulnerable" = true ]]; then
+        echo -e "\e[1;31m[!] System is potentially vulnerable to CVE-2021-22555 (Netfilter heap out-of-bounds write)\e[0m"
+        echo -e "\e[1;36m[-> Exploit]:\e[0m https://github.com/google/security-research/tree/master/pocs/linux/cve-2021-22555"
+        echo -e "\e[1;33m[!] Affects kernel versions 2.6 - 5.11\e[0m"
+        netfilter_summary+=" CVE-2021-22555 (heap OOB write);"
+    else
+        echo -e "\e[1;32m[+] System is not vulnerable to CVE-2021-22555\e[0m"
+    fi
+
+    # Check for CVE-2022-25636 (Vulnerable: 5.4 - 5.6.10)
+    cve_2022_25636_vulnerable=false
+    if [[ $kernel_major -eq 5 ]]; then
+        if [[ $kernel_minor -eq 4 ]]; then
+            cve_2022_25636_vulnerable=true
+        elif [[ $kernel_minor -eq 5 ]]; then
+            cve_2022_25636_vulnerable=true
+        elif [[ $kernel_minor -eq 6 && $kernel_patch -le 10 ]]; then
+            cve_2022_25636_vulnerable=true
+        fi
+    fi
+
+    if [[ "$cve_2022_25636_vulnerable" = true ]]; then
+        echo -e "\e[1;31m[!] System is potentially vulnerable to CVE-2022-25636 (Netfilter heap out-of-bounds write)\e[0m"
+        echo -e "\e[1;36m[-> Exploit]:\e[0m https://github.com/Bonfee/CVE-2022-25636"
+        echo -e "\e[1;33m[!] Affects kernel versions 5.4 - 5.6.10\e[0m"
+        echo -e "\e[1;33m[!] WARNING: Exploitation may corrupt the kernel and require reboot\e[0m"
+        netfilter_summary+=" CVE-2022-25636 (heap OOB write, may corrupt kernel);"
+    else
+        echo -e "\e[1;32m[+] System is not vulnerable to CVE-2022-25636\e[0m"
+    fi
+
+    # Check for CVE-2023-32233 (Vulnerable: up to 6.3.1)
+    cve_2023_32233_vulnerable=false
+    if [[ $kernel_major -lt 6 ]]; then
+        cve_2023_32233_vulnerable=true
+    elif [[ $kernel_major -eq 6 && $kernel_minor -eq 0 ]]; then
+        cve_2023_32233_vulnerable=true
+    elif [[ $kernel_major -eq 6 && $kernel_minor -eq 1 ]]; then
+        cve_2023_32233_vulnerable=true
+    elif [[ $kernel_major -eq 6 && $kernel_minor -eq 2 ]]; then
+        cve_2023_32233_vulnerable=true
+    elif [[ $kernel_major -eq 6 && $kernel_minor -eq 3 && $kernel_patch -le 1 ]]; then
+        cve_2023_32233_vulnerable=true
+    fi
+
+    if [[ "$cve_2023_32233_vulnerable" = true ]]; then
+        echo -e "\e[1;31m[!] System is potentially vulnerable to CVE-2023-32233 (Netfilter Use-After-Free)\e[0m"
+        echo -e "\e[1;36m[-> Exploit]:\e[0m https://github.com/Liuk3r/CVE-2023-32233"
+        echo -e "\e[1;33m[!] Affects kernel versions up to 6.3.1\e[0m"
+        netfilter_summary+=" CVE-2023-32233 (UAF in nf_tables);"
+    else
+        echo -e "\e[1;32m[+] System is not vulnerable to CVE-2023-32233\e[0m"
+    fi
+
+    # Additional checks for Netfilter presence
+    if lsmod | grep -q "nf_tables" 2>/dev/null; then
+        echo -e "\e[1;33m[+] nf_tables module is loaded\e[0m"
+    fi
+    
+    if lsmod | grep -q "nfnetlink" 2>/dev/null; then
+        echo -e "\e[1;33m[+] nfnetlink module is loaded\e[0m"
+    fi
+
+    # If no vulnerabilities found
+    if [[ "$cve_2021_22555_vulnerable" = false && "$cve_2022_25636_vulnerable" = false && "$cve_2023_32233_vulnerable" = false ]]; then
+        netfilter_summary="No Netfilter vulnerabilities detected."
+    fi
+
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+}
+
 # Function to display mounted filesystems
 filesystems_info() {
     echo -e "\n\n\e[1;34m[+] Gathering Filesystem Information\e[0m"
@@ -1618,6 +1745,7 @@ print_summary() {
     echo -e "\e[1;33m[CVE-2017-16995 Vulnerability]:\e[0m $(highlight_summary "$cve_2017_16995_summary")"
     echo -e "\e[1;33m[Dirty Pipe Vulnerability]:\e[0m $(highlight_summary "$dirty_pipe_summary")"
     echo -e "\e[1;33m[Dirty COW Vulnerability]:\e[0m $(highlight_summary "$dirty_cow_summary")"
+    echo -e "\e[1;33m[Netfilter Vulnerabilities]:\e[0m $(highlight_summary "$netfilter_summary")"
     echo -e "\e[1;33m[Writable Files]:\e[0m $(highlight_summary "$writable_files_dirs_summary")"
     echo -e "\e[1;33m[Interesting Files]:\e[0m $(highlight_summary "$interesting_files_summary")"
     echo -e "\e[1;33m[Sensitive Content]:\e[0m $(highlight_summary "$sensitive_content_summary")"
@@ -1766,6 +1894,12 @@ echo -e "\n"
 
 # check for Dirty COW vulnerability
 check_dirty_cow
+
+# Add some spacing
+echo -e "\n"
+
+# check for Netfilter vulns
+check_netfilter_vulns
 
 # Add some spacing
 echo -e "\n"

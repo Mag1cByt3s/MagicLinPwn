@@ -105,6 +105,12 @@ Once the script finishes, a comprehensive summary is displayed, providing an ove
     - Distinguishes between upstream fixes and vendor backports.
     - Provides guidance to verify with vendor security advisories.
     - Displays version output and clear patched status when upstream fix or vendor backport is detected.
+  - Checks kernel version for multiple Netfilter vulnerabilities:
+    - **CVE-2021-22555**: Heap out-of-bounds write affecting kernels `2.6` - `5.11`
+    - **CVE-2022-25636**: Heap out-of-bounds write affecting kernels `5.4` - `5.6.10` (may corrupt kernel)
+    - **CVE-2023-32233**: Use-After-Free in `nf_tables` affecting kernels up to `6.3.1`
+    - Provides links to exploit resources for each vulnerability.
+    - Displays version output and clear non-vulnerable message if safe.
 - **Filesystem Information**:
   - Enumerates block devices and mounted filesystems.
   - Displays concise details including names, sizes, types, filesystems, mount points, usage, and options.
