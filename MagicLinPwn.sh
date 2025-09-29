@@ -58,6 +58,7 @@ cve_2017_16995_summary="CVE-2017-16995 check not performed."
 dirty_pipe_summary="Dirty Pipe check not performed."
 dirty_cow_summary="Dirty COW check not performed."
 netfilter_summary="Netfilter vulnerability check not performed."
+backup_files_summary="No interesting files found in backup directories."
 
 # Function to detect if running inside a Docker container
 detect_docker_container() {
@@ -1442,6 +1443,126 @@ search_interesting_files() {
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
 
+# Function to search for interesting files in backup directories
+check_backup_files() {
+    echo -e "\n\n\e[1;34m[+] Checking for Interesting Files in Backup Directories\e[0m"
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+
+    # Initialize summary variable
+    backup_files_summary="Backup directory check completed."
+
+    # Define backup directories to check
+    backup_dirs=("/var/backup" "/var/backups" "/backup" "/backups" "/opt/backup" "/opt/backups")
+
+    # Define interesting file patterns
+    interesting_patterns=(
+        "*.key"
+        "*.pem"
+        "*.crt"
+        "*.cert"
+        "*.conf"
+        "*.config"
+        "*.sql"
+        "*.db"
+        "*.dump"
+        "*.tar"
+        "*.tar.gz"
+        "*.zip"
+        "*.bak"
+        "*.old"
+        "id_rsa"
+        "id_dsa"
+        ".*_history"
+        "*.log"
+        "shadow"
+        "passwd"
+        "*.env"
+        ".env"
+        ".*rc"
+        ".*_profile"
+        "*.secret*"
+        "*password*"
+        "*credential*"
+        "*private*"
+        "wp-config.php"
+        "*.sql.gz"
+        "*.mysql"
+        "*.pg_dump"
+        "*.aes*"
+    )
+
+    found_files=0
+
+    # Check each backup directory
+    for backup_dir in "${backup_dirs[@]}"; do
+        if [ -d "$backup_dir" ]; then
+            echo -e "\e[1;33m[+] Checking directory:\e[0m $backup_dir"
+            
+            # Search for interesting files
+            for pattern in "${interesting_patterns[@]}"; do
+                # Use find with multiple criteria to avoid overwhelming output
+                while IFS= read -r -d '' file; do
+                    if [ -f "$file" ] && [ -r "$file" ]; then
+                        # Get file size and last modified time
+                        file_size=$(stat -c%s "$file" 2>/dev/null || echo "unknown")
+                        mod_time=$(stat -c%y "$file" 2>/dev/null | cut -d' ' -f1 || echo "unknown")
+                        
+                        # Skip very large files (>100MB) to avoid performance issues
+                        if [[ $file_size =~ ^[0-9]+$ ]] && [ $file_size -gt 104857600 ]; then
+                            echo -e "\e[1;33m[!] Large file (skipped content check):\e[0m $file (\e[1;36mSize:\e[0m $((file_size/1024/1024))MB, \e[1;36mModified:\e[0m $mod_time)"
+                            continue
+                        fi
+                        
+                        # For smaller files, show more details
+                        echo -e "\e[1;32m[Found]:\e[0m $file (\e[1;36mSize:\e[0m $file_size bytes, \e[1;36mModified:\e[0m $mod_time)"
+                        
+                        # Show file type
+                        file_type=$(file -b "$file" 2>/dev/null || echo "unknown")
+                        echo -e "  \e[1;36mType:\e[0m $file_type"
+                        
+                        # For text files, show first few lines if they might contain sensitive info
+                        if [[ "$file_type" == *"text"* ]] || [[ "$file" == *.conf ]] || [[ "$file" == *.config ]] || [[ "$file" == *.env ]]; then
+                            # Check if file contains interesting content without printing it all
+                            if grep -Iq -E "(password|secret|key|token|credential|private)" "$file" 2>/dev/null; then
+                                echo -e "  \e[1;31m[!] May contain sensitive information\e[0m"
+                                # Show sample lines with sensitive keywords (first 2 matches)
+                                grep -I -m 2 -n -E "(password|secret|key|token|credential|private)" "$file" 2>/dev/null | head -n 2 | while read line; do
+                                    echo -e "    \e[1;35mSample:\e[0m ...$line..."
+                                done
+                            fi
+                        fi
+                        
+                        found_files=$((found_files + 1))
+                    fi
+                done < <(find "$backup_dir" -name "$pattern" -type f -print0 2>/dev/null)
+            done
+            
+            # Also check for hidden files and directories
+            echo -e "\e[1;33m[+] Checking for hidden files in:\e[0m $backup_dir"
+            find "$backup_dir" -name ".*" -type f -not -name "." -not -name ".." 2>/dev/null | while read hidden_file; do
+                if [ -f "$hidden_file" ] && [ -r "$hidden_file" ]; then
+                    file_size=$(stat -c%s "$hidden_file" 2>/dev/null || echo "unknown")
+                    mod_time=$(stat -c%y "$hidden_file" 2>/dev/null | cut -d' ' -f1 || echo "unknown")
+                    echo -e "\e[1;32m[Found Hidden]:\e[0m $hidden_file (\e[1;36mSize:\e[0m $file_size bytes, \e[1;36mModified:\e[0m $mod_time)"
+                    found_files=$((found_files + 1))
+                fi
+            done
+        fi
+    done
+
+    # Update summary
+    if [ $found_files -gt 0 ]; then
+        backup_files_summary="Found $found_files potentially interesting files in backup directories."
+        echo -e "\e[1;31m[!] $found_files interesting files found in backup directories\e[0m"
+        echo -e "\e[1;33m[!] Review these files for potential sensitive information\e[0m"
+    else
+        backup_files_summary="No interesting files found in backup directories."
+        echo -e "\e[1;32m[+] No interesting files found in backup directories\e[0m"
+    fi
+
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+}
+
 # search and print content of readable mails
 check_mail() {
     echo -e "\n\n\e[1;34m[+] Checking for Readable Emails in /var/mail/\e[0m"
@@ -1763,6 +1884,7 @@ print_summary() {
     echo -e "\e[1;33m[Netfilter Vulnerabilities]:\e[0m $(highlight_summary "$netfilter_summary")"
     echo -e "\e[1;33m[Writable Files]:\e[0m $(highlight_summary "$writable_files_dirs_summary")"
     echo -e "\e[1;33m[Interesting Files]:\e[0m $(highlight_summary "$interesting_files_summary")"
+    echo -e "\e[1;33m[Backup Files]:\e[0m $(highlight_summary "$backup_files_summary")"
     echo -e "\e[1;33m[Sensitive Content]:\e[0m $(highlight_summary "$sensitive_content_summary")"
     echo -e "\e[1;33m[SSH Private Keys]:\e[0m $(highlight_summary "$ssh_keys_summary")"
     echo -e "\e[1;33m[Log Credentials]:\e[0m $(highlight_summary "$log_credentials_summary")"
@@ -1948,6 +2070,12 @@ echo -e "\n"
 
 # search for potentially interesting files
 search_interesting_files
+
+# Add some spacing
+echo -e "\n"
+
+# search for interesting files in backup directories
+check_backup_files
 
 # Add some spacing
 echo -e "\n"

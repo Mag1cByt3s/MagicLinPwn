@@ -68,6 +68,8 @@ curl -L https://raw.githubusercontent.com/Mag1cByt3s/MagicLinPwn/refs/heads/main
   - Scans environment variables for potential sensitive information such as `PASSWORD`, `TOKEN`, `SECRET`, `DB` etc.
   - Highlights detected variables for further investigation.
   - Provides a clear message if no sensitive information is found.
+- **cmdline Check**
+  - Show the current processes' cmdline
 - **SUID Binary Check**:
   - Finds and lists all binaries with the SUID bit set.
   - Highlights potentially dangerous binaries (e.g., interpreters like `bash` or `python`).
@@ -131,6 +133,7 @@ curl -L https://raw.githubusercontent.com/Mag1cByt3s/MagicLinPwn/refs/heads/main
 - **Potentially Interesting Files Search**:
   - Searches for files with potentially sensitive extensions (e.g., `.xls`, `.doc`, `.pdf`, `.conf`, `.key`).
   - Excludes common irrelevant directories like `lib`, `fonts`, `share`, and `core`.
+  - Searches `/var/backup`, `/var/backups`, and other common backup directories for sensitive files.
   - Displays results clearly for each file extension.
   - Handles cases where no files are found with a clean message.
 - **Email Enumeration**:
