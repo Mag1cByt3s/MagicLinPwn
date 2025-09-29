@@ -7,7 +7,11 @@ Once the script finishes, a comprehensive summary is displayed, providing an ove
 
 ## Usage
 ```bash
-./MagicLinPwn.sh
+chmod +x MagicLinPwn.sh && ./MagicLinPwn.sh
+```
+or if the machine has internet access run it directly off github
+```bash
+curl -L https://raw.githubusercontent.com/Mag1cByt3s/MagicLinPwn/refs/heads/main/MagicLinPwn.sh | bash
 ```
 
 <br>
