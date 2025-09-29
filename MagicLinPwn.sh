@@ -1463,8 +1463,8 @@ search_sensitive_content() {
     sensitive_content_summary="No sensitive content detected in config files."
     # Variable to track if sensitive content is found
     sensitive_found=0
-    # Find .cnf, .conf, .config and .php files and search for sensitive content
-    find / ! -path "*/proc/*" \( -name "*.cnf" -o -name "*.conf" -o -name "*.config" -o -name "*.php" \) 2>/dev/null | grep -v "doc\|lib" | while read -r file; do
+    # Find .cnf, .conf, .config, .php and .xml files and search for sensitive content
+    find / ! -path "*/proc/*" \( -name "*.cnf" -o -name "*.conf" -o -name "*.config" -o -name "*.php" -o -name "*.xml" \) 2>/dev/null | grep -v "doc\|lib" | while read -r file; do
         matches=$(grep --ignore-case --color=always "password\|pass" "$file" 2>/dev/null | grep -v "#")
         if [ -n "$matches" ]; then
             echo -e "\n\e[1;33m[!] File:\e[0m $file"

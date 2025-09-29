@@ -139,7 +139,7 @@ curl -L https://raw.githubusercontent.com/Mag1cByt3s/MagicLinPwn/refs/heads/main
   - Highlights any discovered emails that may contain **sensitive information**.
   - If no readable mailboxes are found, it provides a clear message.
 - **Sensitive Content Search**:
-  - Searches `.cnf`, `.conf`, and `.config` files for sensitive keywords like `password` or `pass`.
+  - Searches `.cnf`, `.conf`, `.config`, `.php` and `.xml` files for sensitive keywords like `password` or `pass`.
   - Excludes unnecessary directories (e.g., `doc`, `lib`) to reduce noise.
   - Highlights matches for better readability.
   - Only displays filenames and content when matches are found.
