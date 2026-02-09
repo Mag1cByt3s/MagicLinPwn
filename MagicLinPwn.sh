@@ -59,6 +59,7 @@ dirty_pipe_summary="Dirty Pipe check not performed."
 dirty_cow_summary="Dirty COW check not performed."
 netfilter_summary="Netfilter vulnerability check not performed."
 backup_files_summary="No interesting files found in backup directories."
+editor_artifacts_summary="No editor artifacts found."
 
 # Function to detect if running inside a Docker container
 detect_docker_container() {
@@ -470,6 +471,96 @@ history_info() {
     done
     # Store formatted data for summary
     history_summary="Current history entries: $(history | wc -l); Found files: $(find / \( -path /proc -o -path /sys -o -path /dev -o -path /run -o -path /tmp -o -path /nix -o -path /snap \) -prune -o -type f \( -name "*_history*" \) 2>/dev/null | wc -l)"
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+}
+
+# Function to display editor artifacts that may contain sensitive information
+editor_artifacts_info() {
+    echo -e "\n\n\e[1;34m[+] Gathering Editor Artifact Information\e[0m"
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+    echo -e "\e[1;33mNote:\e[0m These files can contain command/search history, recently opened files, and other sensitive content."
+
+    local -a search_roots=()
+    local -a candidates=()
+    local -a sample_files=()
+    local root
+    local rel
+    local file_path
+    local found_any=false
+    local found_count=0
+    local readable_count=0
+
+    # Common editor artifact paths relative to a user's home directory
+    candidates=(
+        ".viminfo"
+        ".vim/viminfo"
+        ".config/nvim/shada/main.shada"
+        ".local/state/nvim/shada/main.shada"
+        ".local/share/nvim/shada/main.shada"
+        ".nano_history"
+        ".lesshst"
+        ".emacs.d/recentf"
+        ".emacs.d/.recentf"
+        ".emacs.d/places"
+        ".emacs.d/bookmarks"
+        ".config/Code/User/settings.json"
+        ".config/Code/User/keybindings.json"
+        ".config/VSCodium/User/settings.json"
+        ".config/VSCodium/User/keybindings.json"
+    )
+
+    # Search current user, then common locations for other users
+    if [ -n "$HOME" ] && [ -d "$HOME" ]; then
+        search_roots+=("$HOME")
+    fi
+    if [ -d /root ]; then
+        search_roots+=("/root")
+    fi
+    for root in /home/*; do
+        if [ -d "$root" ]; then
+            search_roots+=("$root")
+        fi
+    done
+
+    for root in "${search_roots[@]}"; do
+        for rel in "${candidates[@]}"; do
+            file_path="$root/$rel"
+            if [ -e "$file_path" ]; then
+                found_any=true
+                found_count=$((found_count + 1))
+                if [ "${#sample_files[@]}" -lt 10 ]; then
+                    sample_files+=("$file_path")
+                fi
+                if [ -r "$file_path" ]; then
+                    readable_count=$((readable_count + 1))
+                    echo -e "\e[1;31m$file_path (Readable):\e[0m"
+                    if [[ "$file_path" == *.shada ]]; then
+                        if command -v strings >/dev/null 2>&1; then
+                            strings -a "$file_path" 2>/dev/null
+                        else
+                            cat "$file_path" 2>/dev/null
+                        fi
+                    else
+                        cat "$file_path" 2>/dev/null
+                    fi
+                    echo -e "\n"
+                else
+                    echo -e "\e[1;33m$file_path (Not readable)\e[0m"
+                    echo -e "\n"
+                fi
+            fi
+        done
+    done
+
+    if ! $found_any; then
+        echo -e "\e[1;31m[-] No common editor artifact files found in $HOME, /root, or /home/*.\e[0m"
+        editor_artifacts_summary="No editor artifacts found."
+    elif [ "$readable_count" -gt 0 ]; then
+        editor_artifacts_summary="Review needed: Found ${found_count} editor artifact file(s) (${readable_count} readable). Examples: $(IFS=', '; echo "${sample_files[*]}")"
+    else
+        editor_artifacts_summary="Found ${found_count} editor artifact file(s), none readable. Examples: $(IFS=', '; echo "${sample_files[*]}")"
+    fi
+
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
 
@@ -1870,6 +1961,7 @@ print_summary() {
     echo -e "$user_info_summary" | while IFS= read -r line; do echo " $line"; done
     
     echo -e "\e[1;33m[PATH Information]:\e[0m $path_info_summary"
+    echo -e "\e[1;33m[Editor Artifacts]:\e[0m $(highlight_summary "$editor_artifacts_summary")"
     echo -e "\e[1;33m[Sudo Privileges]:\e[0m $(highlight_summary "$sudo_priv_summary")"
     echo -e "\e[1;33m[Environment Variables]:\e[0m $(highlight_summary "$env_vars_summary")"
     echo -e "\e[1;33m[SUID Binaries]:\e[0m $(highlight_summary "$suid_summary")"
@@ -1950,6 +2042,12 @@ echo -e "\n"
 
 # Show shell history
 history_info
+
+# Add some spacing
+echo -e "\n"
+
+# Show editor artifacts (viminfo, shada, recentf, etc.)
+editor_artifacts_info
 
 # Add some spacing
 echo -e "\n"

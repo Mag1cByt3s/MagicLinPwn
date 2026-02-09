@@ -156,6 +156,10 @@ curl -L https://raw.githubusercontent.com/Mag1cByt3s/MagicLinPwn/refs/heads/main
   - Dumps the contents of any accessible history files for analysis.
   - Highlights the file paths and their contents, providing insights into commands executed by users.
   - Clearly indicates if no history files are found or accessible.
+- **Editor Artifact File Dump**:
+  - Checks common editor artifact files that may store sensitive information (e.g., `~/.viminfo`, Neovim `shada` files, Emacs `recentf`, Nano history, Less history, VSCode/VSCodium user settings).
+  - Dumps the contents of any accessible artifact files for analysis (uses `strings` for Neovim `*.shada` files when available).
+  - Adds an **Editor Artifacts** line to the summary, including counts and example file paths.
 - **Credential Discovery in Log Files**:
   - Searches common log files (`auth.log`, `access.log`, `syslog`, etc.) for potential credentials.
   - Identifies sensitive information such as usernames, passwords, API tokens, and secrets.
@@ -175,7 +179,7 @@ curl -L https://raw.githubusercontent.com/Mag1cByt3s/MagicLinPwn/refs/heads/main
   - Clearly indicates if no writable files or directories are found.
 - **Brief Summary at the End**:
     Provides a summary of all findings from the script.
-    Highlights areas that require attention (e.g., writable files, dangerous capabilities, sensitive environment variables).
+    Highlights areas that require attention (e.g., editor artifacts, writable files, dangerous capabilities, sensitive environment variables).
     Displays reassuring messages when no issues are found in specific checks.
     Ensures users have a quick overview of potential privilege escalation vectors without scrolling through the detailed output.
 
