@@ -776,6 +776,77 @@ cron_check() {
     cron_risks=()
     cron_summary="No writable cron jobs or misconfigurations detected."
 
+    # Helper: analyze a PATH value using the same "non-normal" heuristics as path_info()
+	    analyze_path_value() {
+	        local path_value="$1"
+	        local context_label="$2"
+	        local indent="$3"
+        local -a path_array=()
+        local -a bad_entries=()
+        local dir
+
+	        if [ -z "$path_value" ]; then
+	            echo -e "${indent}\e[1;31m[!] $context_label sets an empty PATH (non-normal)\e[0m"
+	            cron_risks+=("Non-normal cron PATH in $context_label: empty PATH")
+	            return
+	        fi
+
+        echo -e "${indent}\e[1;33m[!] PATH set in $context_label:\e[0m $path_value"
+        echo -e "${indent}\e[1;33mPATH Entries:\e[0m"
+
+        IFS=':' read -r -a path_array <<< "$path_value"
+        for dir in "${path_array[@]}"; do
+            if [ -z "$dir" ]; then
+                echo -e "${indent}\e[1;31m(Empty entry - non-normal)\e[0m"
+                bad_entries+=("(empty)")
+            elif [ "$dir" = "." ]; then
+                echo -e "${indent}\e[1;31m$dir (Current directory - non-normal)\e[0m"
+                bad_entries+=(".")
+            elif [ -d "$dir" ] && [ -w "$dir" ]; then
+                echo -e "${indent}\e[1;31m$dir (Writable - non-normal)\e[0m"
+                bad_entries+=("$dir")
+            else
+                echo -e "${indent}$dir"
+            fi
+        done
+
+	        if [ ${#bad_entries[@]} -gt 0 ]; then
+	            cron_risks+=("Non-normal cron PATH in $context_label: ${bad_entries[*]}")
+	        fi
+	    }
+
+    # Helper: scan crontab-style text for PATH= / export PATH= lines and analyze them
+    scan_cron_paths_from_stream() {
+        local context_label="$1"
+        local indent="$2"
+        local line trimmed without_comment path_value
+        local found_any=false
+
+        while IFS= read -r line; do
+            trimmed="${line#"${line%%[![:space:]]*}"}"
+            [ -z "$trimmed" ] && continue
+            [[ "$trimmed" == \#* ]] && continue
+
+            without_comment="${trimmed%%\#*}"
+            if [[ "$without_comment" =~ ^(export[[:space:]]+)?PATH[[:space:]]*=[[:space:]]*(\"[^\"]*\"|\'[^\']*\'|[^[:space:]]*) ]]; then
+                path_value="${BASH_REMATCH[2]}"
+                path_value="${path_value%"${path_value##*[![:space:]]}"}"
+
+                # Strip surrounding single/double quotes
+                if [[ "$path_value" =~ ^\"(.*)\"$ ]]; then
+                    path_value="${BASH_REMATCH[1]}"
+                elif [[ "$path_value" =~ ^\'(.*)\'$ ]]; then
+                    path_value="${BASH_REMATCH[1]}"
+                fi
+
+                found_any=true
+                analyze_path_value "$path_value" "$context_label" "$indent"
+            fi
+        done
+
+        $found_any || true
+    }
+
     # Helper function to check and display a single cron file/dir
     check_cron_item() {
         local item_path="$1"
@@ -785,6 +856,9 @@ cron_check() {
         if [ "$item_type" = "file" ] && [ -f "$item_path" ]; then
             echo -e "${indent}\e[1;33mContents of $item_path:\e[0m"
             cat "$item_path" | sed "s/^/${indent} /"
+            if [ -r "$item_path" ]; then
+                scan_cron_paths_from_stream "$item_path" "${indent} " < "$item_path"
+            fi
             if [ -w "$item_path" ]; then
                 echo -e "${indent}\e[1;31m[!] $item_path is writable! Potential security risk.\e[0m"
                 cron_risks+=("$item_path is writable")
@@ -801,6 +875,9 @@ cron_check() {
                     echo -e "${indent}$full_path"
                     if [ -f "$full_path" ]; then
                         cat "$full_path" | sed "s/^/${indent} /"
+                        if [ -r "$full_path" ]; then
+                            scan_cron_paths_from_stream "$full_path" "${indent} " < "$full_path"
+                        fi
                         if [ -w "$full_path" ]; then
                             echo -e "${indent}\e[1;31m[!] $full_path is writable! Potential security risk.\e[0m"
                             cron_risks+=("$full_path is writable")
@@ -848,6 +925,7 @@ cron_check() {
         if [ $? -eq 0 ] && [ -n "$user_cron" ]; then
             echo -e " \e[1;33mCrontab entries for $(whoami):\e[0m"
             echo "$user_cron" | sed 's/^/ /'
+            scan_cron_paths_from_stream "crontab for $(whoami)" "  " <<< "$user_cron"
         else
             echo -e " \e[1;31mNo crontab entries for $(whoami).\e[0m"
         fi

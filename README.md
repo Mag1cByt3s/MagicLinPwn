@@ -82,6 +82,7 @@ curl -L https://raw.githubusercontent.com/Mag1cByt3s/MagicLinPwn/refs/heads/main
   - **System-Wide Cron Jobs**: Lists cron jobs from `/etc/cron.d` and their contents.
   - **User-Specific Cron Jobs**: Checks the current user’s crontab for entries.
   - **/etc/crontab Analysis**: Displays the contents of `/etc/crontab` and checks if it is writable.
+  - **Cron PATH Checks**: Detects `PATH=...` / `export PATH=...` in cron-related files and highlights non-normal entries (empty entries, `.`, or writable directories).
   - **Visible Cron Jobs in /var/log/syslog**: Searches `/var/log/syslog` for recent CRON executions.
   - **Writable Cron Files**: Identifies writable cron files across `/etc/cron*` directories and highlights potential security risks.
 - **Capabilities Check**:
