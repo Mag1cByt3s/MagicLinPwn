@@ -43,6 +43,7 @@ os_info_summary=""
 user_info_summary=""
 sudo_priv_summary="No unusual sudo privileges detected."
 doas_summary="No doas configuration found."
+python_libhijack_summary="No Python library hijacking opportunities found."
 suid_summary="No SUID binaries detected."
 sgid_summary="No SGID binaries detected."
 cron_summary="No writable cron jobs or misconfigurations detected."
@@ -542,6 +543,86 @@ path_info() {
     # Store formatted data for summary
     path_info_summary="PATH: $current_path\nNon-normal entries: $(IFS=':'; for dir in "${path_array[@]}"; do if [ -z "$dir" ] || [ "$dir" = "." ] || ([ -d "$dir" ] && [ -w "$dir" ]); then echo -n "$dir, "; fi; done | sed 's/, $//')"
     echo -e "\n\e[1;32m--------------------------------------------------------------------------\e[0m"
+}
+
+# Function to check for Python library hijacking opportunities
+python_libhijack_check() {
+    echo -e "\n\n\e[1;34m[+] Checking Python Library Hijacking\e[0m"
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+
+    python_libhijack_summary="No Python library hijacking opportunities found."
+
+    # Find available Python interpreters
+    local python_bins=()
+    for pybin in python3 python python2; do
+        if command -v "$pybin" >/dev/null 2>&1; then
+            python_bins+=("$pybin")
+        fi
+    done
+
+    if [ ${#python_bins[@]} -eq 0 ]; then
+        echo -e "\e[1;31m[-] No Python interpreter found on this system.\e[0m"
+        python_libhijack_summary="No Python interpreter installed."
+        echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+        return
+    fi
+
+    local writable_found=false
+    local writable_paths=()
+
+    for pybin in "${python_bins[@]}"; do
+        echo -e "\e[1;33m[*] Checking $pybin sys.path:\e[0m"
+
+        # Get sys.path from Python
+        local sys_path
+        sys_path=$("$pybin" -c "import sys; print('\\n'.join(sys.path))" 2>/dev/null)
+
+        if [ -z "$sys_path" ]; then
+            echo -e "    \e[1;31m[-] Could not retrieve sys.path\e[0m"
+            continue
+        fi
+
+        local path_index=0
+        while IFS= read -r pypath; do
+            if [ -z "$pypath" ]; then
+                echo -e "    \e[1;33m[$path_index] '' (empty = current directory)\e[0m"
+                echo -e "        \e[1;31m[!] HIJACK POTENTIAL: Import from current working directory\e[0m"
+                echo -e "        \e[1;37m→ If a script runs from a writable directory, place malicious .py file there\e[0m"
+                writable_found=true
+                writable_paths+=("cwd (empty path)")
+            elif [ -d "$pypath" ]; then
+                if [ -w "$pypath" ]; then
+                    echo -e "    \e[1;31m[$path_index] $pypath (WRITABLE)\e[0m"
+                    echo -e "        \e[1;31m[!] HIJACK POTENTIAL: Can write malicious Python modules here\e[0m"
+                    echo -e "        \e[1;37m→ Create a .py file matching an imported module name to hijack imports\e[0m"
+                    echo -e "        \e[1;37m→ Example: echo 'import os;os.system(\"/bin/bash\")' > $pypath/requests.py\e[0m"
+                    writable_found=true
+                    writable_paths+=("$pypath")
+                else
+                    echo -e "    [$path_index] $pypath"
+                fi
+            else
+                echo -e "    [$path_index] $pypath (does not exist)"
+                # Check if parent is writable - could create the directory
+                local parent_dir
+                parent_dir=$(dirname "$pypath")
+                if [ -d "$parent_dir" ] && [ -w "$parent_dir" ]; then
+                    echo -e "        \e[1;33m[!] Parent directory writable - could create this path\e[0m"
+                    writable_found=true
+                    writable_paths+=("$pypath (creatable)")
+                fi
+            fi
+            ((path_index++))
+        done <<< "$sys_path"
+        echo ""
+    done
+
+    # Update summary
+    if $writable_found; then
+        python_libhijack_summary="Writable Python paths found: ${writable_paths[*]}. Review needed."
+    fi
+
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
 
 # Function to display shell history and history files
@@ -2142,6 +2223,7 @@ print_summary() {
     echo -e "\e[1;33m[Editor Artifacts]:\e[0m $(highlight_summary "$editor_artifacts_summary")"
     echo -e "\e[1;33m[Sudo Privileges]:\e[0m $(highlight_summary "$sudo_priv_summary")"
     echo -e "\e[1;33m[Doas Configuration]:\e[0m $(highlight_summary "$doas_summary")"
+    echo -e "\e[1;33m[Python Library Hijacking]:\e[0m $(highlight_summary "$python_libhijack_summary")"
     echo -e "\e[1;33m[Environment Variables]:\e[0m $(highlight_summary "$env_vars_summary")"
     echo -e "\e[1;33m[SUID Binaries]:\e[0m $(highlight_summary "$suid_summary")"
     echo -e "\e[1;33m[SGID Binaries]:\e[0m $(highlight_summary "$sgid_summary")"
@@ -2221,6 +2303,12 @@ echo -e "\n"
 
 # Show PATH variable info
 path_info
+
+# Add some spacing
+echo -e "\n"
+
+# Check Python library hijacking
+python_libhijack_check
 
 # Add some spacing
 echo -e "\n"

@@ -62,6 +62,13 @@ curl -L https://raw.githubusercontent.com/Mag1cByt3s/MagicLinPwn/refs/heads/main
   - Tests whether the current user has valid doas permissions.
 - **PATH Variable Check**:
   - Show PATH Variable content and highlight any non-normal entries
+- **Python Library Hijacking Check**:
+  - Enumerates all available Python interpreters (python3, python, python2).
+  - Retrieves and displays `sys.path` for each interpreter.
+  - Identifies writable directories in `sys.path` that could be used for module hijacking.
+  - Detects empty path entries (current directory imports) as potential hijack vectors.
+  - Checks if non-existent paths have writable parent directories (can create the path).
+  - Provides exploitation examples for privilege escalation via malicious module injection.
 - **/etc/hosts Information**:
   - Displays the contents of `/etc/hosts`, excluding comments and empty lines.
   - Highlights non-local entries (e.g., anything not localhost or loopback).
