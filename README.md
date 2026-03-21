@@ -53,6 +53,13 @@ curl -L https://raw.githubusercontent.com/Mag1cByt3s/MagicLinPwn/refs/heads/main
   - Checks if `sudo` is installed, displays the sudo version and if the user can execute `sudo` commands without a password.
   - Highlights critical configurations such as `ALL`, `NOPASSWD`, and `SETENV`.
   - Checks sudo version for known vulnerabilities.
+- **Doas Configuration Check**:
+  - Checks if `doas` is installed and `/etc/doas.conf` exists.
+  - Parses and displays doas rules with syntax highlighting (`permit`, `deny`, `nopass`, `persist`, `keepenv`, `setenv`, `as root`, `cmd`).
+  - Identifies exploitation potential for `nopass` rules and provides GTFOBins links for allowed commands.
+  - Flags critical misconfigurations such as unrestricted root access without password.
+  - Warns about environment variable preservation (`keepenv`/`setenv`) that could enable LD_PRELOAD/PATH hijacking.
+  - Tests whether the current user has valid doas permissions.
 - **PATH Variable Check**:
   - Show PATH Variable content and highlight any non-normal entries
 - **/etc/hosts Information**:

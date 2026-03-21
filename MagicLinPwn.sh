@@ -42,6 +42,7 @@ fi
 os_info_summary=""
 user_info_summary=""
 sudo_priv_summary="No unusual sudo privileges detected."
+doas_summary="No doas configuration found."
 suid_summary="No SUID binaries detected."
 sgid_summary="No SGID binaries detected."
 cron_summary="No writable cron jobs or misconfigurations detected."
@@ -417,6 +418,105 @@ sudo_check() {
     else
         echo -e "\e[1;31m[-] User cannot run sudo commands without a password.\e[0m"
     fi
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+}
+
+# Function to check doas configuration
+doas_check() {
+    echo -e "\n\n\e[1;34m[+] Checking Doas Configuration\e[0m"
+    echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+
+    doas_summary="No doas configuration found."
+
+    # Check if doas is installed
+    if ! command -v doas >/dev/null 2>&1; then
+        echo -e "\e[1;31m[-] Doas is not installed on this system.\e[0m"
+        doas_summary="Doas is not installed."
+        echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+        return
+    fi
+
+    # Check if doas.conf exists
+    if [ ! -f /etc/doas.conf ]; then
+        echo -e "\e[1;31m[-] /etc/doas.conf does not exist.\e[0m"
+        doas_summary="Doas installed but no config file found."
+        echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+        return
+    fi
+
+    # Check if we can read the config
+    if [ ! -r /etc/doas.conf ]; then
+        echo -e "\e[1;31m[-] Cannot read /etc/doas.conf (permission denied).\e[0m"
+        doas_summary="Doas config exists but not readable."
+        echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+        return
+    fi
+
+    echo -e "\e[1;33m[!] Found /etc/doas.conf - Analyzing rules:\e[0m\n"
+
+    current_user=$(whoami)
+    user_rules_found=false
+
+    # Read and process doas.conf
+    while IFS= read -r line || [ -n "$line" ]; do
+        # Skip empty lines and comments
+        [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+
+        # Highlight the line
+        highlighted=$(echo "$line" | sed \
+            -e 's/\bpermit\b/\x1b[1;32mpermit\x1b[0m/g' \
+            -e 's/\bdeny\b/\x1b[1;31mdeny\x1b[0m/g' \
+            -e 's/\bnopass\b/\x1b[1;31mnopass\x1b[0m/g' \
+            -e 's/\bpersist\b/\x1b[1;33mpersist\x1b[0m/g' \
+            -e 's/\bkeeepenv\b/\x1b[1;33mkeepenv\x1b[0m/g' \
+            -e 's/\bsetenv\b/\x1b[1;33msetenv\x1b[0m/g' \
+            -e 's/\bas root\b/\x1b[1;35mas root\x1b[0m/g' \
+            -e 's/\bcmd\b/\x1b[1;36mcmd\x1b[0m/g')
+        printf "    %b\n" "$highlighted"
+
+        # Check if rule applies to current user or groups
+        if echo "$line" | grep -qE "(permit|deny).*($current_user|:$(id -Gn | tr ' ' '|'))"; then
+            user_rules_found=true
+        fi
+
+        # Check for dangerous configurations
+        if echo "$line" | grep -qE "permit.*nopass.*as root.*cmd"; then
+            cmd_allowed=$(echo "$line" | sed -n 's/.*cmd \([^ ]*\).*/\1/p')
+            echo -e "\n    \e[1;33m[!] EXPLOITATION POTENTIAL:\e[0m"
+            echo -e "        \e[1;37m→ User can run '$cmd_allowed' as root without password\e[0m"
+            echo -e "        \e[1;37m→ Check GTFOBins for: https://gtfobins.github.io/gtfobins/${cmd_allowed##*/}/\e[0m"
+            echo -e "        \e[1;37m→ Try: doas $cmd_allowed\e[0m\n"
+            doas_summary="Doas nopass rule found for command: $cmd_allowed. Review needed."
+        fi
+
+        if echo "$line" | grep -qE "permit.*nopass.*as root$" && ! echo "$line" | grep -q "cmd"; then
+            echo -e "\n    \e[1;31m[!!!] CRITICAL: User can run ANY command as root without password!\e[0m"
+            echo -e "        \e[1;37m→ Direct root access: doas -s\e[0m"
+            echo -e "        \e[1;37m→ Or simply: doas su -\e[0m\n"
+            doas_summary="CRITICAL: Unrestricted nopass root access via doas! Review needed."
+        fi
+
+        if echo "$line" | grep -qE "keepenv|setenv"; then
+            echo -e "    \e[1;33m[!] Environment variables preserved - check for LD_PRELOAD/PATH hijacking\e[0m\n"
+        fi
+
+    done < /etc/doas.conf
+
+    # Try running doas to see what we can actually do
+    echo -e "\n\e[1;34m[+] Testing doas access:\e[0m"
+    if doas -C /etc/doas.conf id >/dev/null 2>&1; then
+        echo -e "    \e[1;32m[+] Current user has valid doas permissions\e[0m"
+        # Only update summary if not already set to something more critical
+        if [ "$doas_summary" = "No doas configuration found." ]; then
+            doas_summary="User has valid doas permissions. Review needed."
+        fi
+    else
+        echo -e "    \e[1;31m[-] Current user has no direct doas permissions or config check failed\e[0m"
+        if [ "$doas_summary" = "No doas configuration found." ]; then
+            doas_summary="Doas config found but current user has no permissions."
+        fi
+    fi
+
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
 
@@ -2041,6 +2141,7 @@ print_summary() {
     echo -e "\e[1;33m[PATH Information]:\e[0m $path_info_summary"
     echo -e "\e[1;33m[Editor Artifacts]:\e[0m $(highlight_summary "$editor_artifacts_summary")"
     echo -e "\e[1;33m[Sudo Privileges]:\e[0m $(highlight_summary "$sudo_priv_summary")"
+    echo -e "\e[1;33m[Doas Configuration]:\e[0m $(highlight_summary "$doas_summary")"
     echo -e "\e[1;33m[Environment Variables]:\e[0m $(highlight_summary "$env_vars_summary")"
     echo -e "\e[1;33m[SUID Binaries]:\e[0m $(highlight_summary "$suid_summary")"
     echo -e "\e[1;33m[SGID Binaries]:\e[0m $(highlight_summary "$sgid_summary")"
@@ -2108,6 +2209,12 @@ echo -e "\n"
 
 # enum sudo check
 sudo_check
+
+# Add some spacing
+echo -e "\n"
+
+# enum doas check
+doas_check
 
 # Add some spacing
 echo -e "\n"
