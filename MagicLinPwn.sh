@@ -1945,23 +1945,177 @@ check_mail() {
 search_sensitive_content() {
     echo -e "\n\n\e[1;34m[+] Searching for Sensitive Content in Config Files\e[0m"
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
+
     # Initialize the summary
     sensitive_content_summary="No sensitive content detected in config files."
+
     # Variable to track if sensitive content is found
     sensitive_found=0
-    # Find .cnf, .conf, .config, .php, .xml and .bak files and search for sensitive content
-    find / ! -path "*/proc/*" \( -name "*.cnf" -o -name "*.conf" -o -name "*.config" -o -name "*.php" -o -name "*.xml" -o -name "*.bak" \) 2>/dev/null | grep -v "doc\|lib" | while read -r file; do
-        matches=$(grep --ignore-case --color=always "password\|pass" "$file" 2>/dev/null | grep -v "#")
+
+    # Directories to exclude (vendor code, documentation, libraries)
+    exclude_pattern="/(vendor|node_modules|\.git|doc|docs|documentation|examples|test|tests|spec|cache|log|logs|tmp)/"
+
+    # Patterns that indicate actual credential assignments (not just mentions)
+    # These look for assignment operators near credential keywords
+    credential_patterns=(
+        # Direct assignments with optional quotes: password=, "password":, 'password' =>
+        # Matches: password=x, password = x, "password": x, 'password' => x
+        "['\"]?password['\"]?[[:space:]]*=>"           # PHP array: 'password' =>
+        "['\"]?password['\"]?[[:space:]]*[=:][[:space:]]*[^=]"  # password= or password:
+        "['\"]?passwd['\"]?[[:space:]]*=>"
+        "['\"]?passwd['\"]?[[:space:]]*[=:][[:space:]]*[^=]"
+        "['\"]?pwd['\"]?[[:space:]]*=>"
+        "['\"]?pwd['\"]?[[:space:]]*[=:][[:space:]]*[^=]"
+        "['\"]?secret['\"]?[[:space:]]*=>"
+        "['\"]?secret['\"]?[[:space:]]*[=:][[:space:]]*[^=]"
+        "['\"]?api_key['\"]?[[:space:]]*=>"
+        "['\"]?api_key['\"]?[[:space:]]*[=:][[:space:]]*[^=]"
+        "['\"]?apikey['\"]?[[:space:]]*=>"
+        "['\"]?apikey['\"]?[[:space:]]*[=:][[:space:]]*[^=]"
+        "['\"]?api[-_]?secret['\"]?[[:space:]]*=>"
+        "['\"]?api[-_]?secret['\"]?[[:space:]]*[=:][[:space:]]*[^=]"
+        "['\"]?auth[-_]?token['\"]?[[:space:]]*=>"
+        "['\"]?auth[-_]?token['\"]?[[:space:]]*[=:][[:space:]]*[^=]"
+        "['\"]?access[-_]?token['\"]?[[:space:]]*=>"
+        "['\"]?access[-_]?token['\"]?[[:space:]]*[=:][[:space:]]*[^=]"
+        "['\"]?private[-_]?key['\"]?[[:space:]]*=>"
+        "['\"]?private[-_]?key['\"]?[[:space:]]*[=:][[:space:]]*[^=]"
+        "['\"]?token['\"]?[[:space:]]*=>"
+        "['\"]?token['\"]?[[:space:]]*[=:][[:space:]]*[^=]"
+        'db[-_]?pass'
+        'db[-_]?password'
+        'mysql[-_]?pass'
+        'mysql[-_]?password'
+        'postgres[-_]?pass'
+        'redis[-_]?pass'
+        'mongo[-_]?pass'
+        'smtp[-_]?pass'
+        'mail[-_]?pass'
+        'ftp[-_]?pass'
+        'ssh[-_]?pass'
+        'ldap[-_]?pass'
+        'admin[-_]?pass'
+        'root[-_]?pass'
+        "['\"]?credentials['\"]?[[:space:]]*=>"
+        "['\"]?credentials['\"]?[[:space:]]*[=:][[:space:]]*[^=]"
+        "['\"]?connectionstring['\"]?[[:space:]]*=>"
+        "['\"]?connectionstring['\"]?[[:space:]]*[=:][[:space:]]*[^=]"
+    )
+
+    # Build combined regex pattern
+    combined_pattern=$(IFS='|'; echo "${credential_patterns[*]}")
+
+    # False positive patterns to filter out (code, comments, documentation)
+    # These patterns indicate the line is code/docs rather than actual credentials
+    filter_out_patterns=(
+        '^\s*//'           # C-style line comments
+        '^\s*\*'           # Multi-line comment continuation
+        '^\s*#'            # Shell/conf comments
+        '^\s*<!--'         # XML comments
+        'function\s'       # Function definitions
+        'public\s*function'
+        'private\s*function'
+        'protected\s*function'
+        '\$this->'         # PHP method calls
+        'return\s'         # Return statements
+        '@param'           # PHPDoc
+        '@return'
+        '@throws'
+        'password.*reset'  # Password reset routes/logic (not credentials)
+        'password.*hash'   # Password hashing logic
+        'password.*valid'  # Password validation
+        'password.*confirm'
+        'password.*match'
+        'password.*check'
+        'password.*request'
+        'password.*email'
+        'forgot.*password'
+        'change.*password'
+        'new.*password'
+        'old.*password'
+        'pass.*through'    # passthrough logic
+        'pass.*able'       # passable variables
+        '\$pass[A-Z]'      # camelCase variables like $passData
+        '\$passthru'       # passthru variable
+        'passes\('         # Method calls like passes()
+        'passed\s'         # "passed" as past tense
+        'passing\s'        # "passing" as gerund
+        'will be passed'   # Documentation phrases
+        'to be passed'
+        'are passed'
+        'is passed'
+        'gets passed'
+        'dynamically pass' # Framework boilerplate
+        'pass along'
+        'pass on'
+        'pass calls'
+        'pass methods'
+        'pass dynamic'
+        '->get\('          # Method chains
+        '->post\('
+        '->name\('
+        'Controller@'      # Route definitions
+        'filtersPass'      # Laravel method names
+        'expressionPass'
+        'OptionalCheck'
+        'Authorization'
+        'getAuthPassword'
+        'storePasswordHash'
+        'class\s+\w'       # Class definitions
+        'interface\s+\w'
+        'trait\s+\w'
+        'namespace\s'
+        'use\s+\w'         # Use statements
+        'extends\s'
+        'implements\s'
+        '\* @'             # PHPDoc lines
+    )
+
+    filter_pattern=$(IFS='|'; echo "${filter_out_patterns[*]}")
+
+    echo -e "\e[1;33m[*] Searching .env files (high-value targets)...\e[0m"
+
+    # First, specifically search for .env files (often contain credentials)
+    find / ! -path "*/proc/*" -type f \( -name ".env" -o -name ".env.*" -o -name "*.env" \) 2>/dev/null | \
+    grep -Ev "$exclude_pattern" | while read -r file; do
+        # For .env files, show any line with values (they're almost always sensitive)
+        matches=$(grep -v '^\s*#' "$file" 2>/dev/null | grep -v '^\s*$' | grep '=' | head -20)
         if [ -n "$matches" ]; then
-            echo -e "\n\e[1;33m[!] File:\e[0m $file"
-            echo "$matches" | sed 's/^/ /'
+            echo -e "\n\e[1;33m[!] ENV File:\e[0m $file"
+            echo "$matches" | sed 's/^/    /'
             sensitive_found=1
         fi
     done
+
+    echo -e "\n\e[1;33m[*] Searching config files for credential patterns...\e[0m"
+
+    # Search various config file types (including PHP)
+    find / ! -path "*/proc/*" -type f \( \
+        -name "*.cnf" -o -name "*.conf" -o -name "*.config" -o \
+        -name "*.ini" -o -name "*.cfg" -o \
+        -name "*.yml" -o -name "*.yaml" -o \
+        -name "*.properties" -o -name "*.xml" -o \
+        -name "*.json" -o -name "*.bak" -o \
+        -name "*.php" -o -name "*.inc" -o \
+        -name ".htpasswd" -o -name ".pgpass" -o \
+        -name "credentials*" -o -name "*credentials*" \
+    \) 2>/dev/null | grep -Ev "$exclude_pattern" | while read -r file; do
+        # Search for credential patterns, then filter out false positives
+        matches=$(grep -iE --color=always "$combined_pattern" "$file" 2>/dev/null | \
+                  grep -ivE "$filter_pattern" | \
+                  head -10)
+        if [ -n "$matches" ]; then
+            echo -e "\n\e[1;33m[!] File:\e[0m $file"
+            echo "$matches" | sed 's/^/    /'
+            sensitive_found=1
+        fi
+    done
+
     # Update the summary
     if [ $sensitive_found -eq 1 ]; then
         sensitive_content_summary="Sensitive content detected in config files. Review needed."
     fi
+
     echo -e "\e[1;32m--------------------------------------------------------------------------\e[0m"
 }
 

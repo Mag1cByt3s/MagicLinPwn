@@ -157,10 +157,13 @@ curl -L https://raw.githubusercontent.com/Mag1cByt3s/MagicLinPwn/refs/heads/main
   - Highlights any discovered emails that may contain **sensitive information**.
   - If no readable mailboxes are found, it provides a clear message.
 - **Sensitive Content Search**:
-  - Searches `.cnf`, `.conf`, `.config`, `.php` and `.xml` files for sensitive keywords like `password` or `pass`.
-  - Excludes unnecessary directories (e.g., `doc`, `lib`) to reduce noise.
+  - Searches `.env` files separately as high-value targets (displays all non-comment lines).
+  - Searches config files: `.cnf`, `.conf`, `.config`, `.ini`, `.cfg`, `.yml`, `.yaml`, `.properties`, `.xml`, `.json`, `.bak`, `.php`, `.inc`, `.htpasswd`, `.pgpass`, and files with `credentials` in the name.
+  - Uses smart regex patterns to detect actual credential assignments (e.g., `password=`, `'password' =>`, `"api_key":`) rather than just keyword mentions.
+  - Detects service-specific credentials: DB, MySQL, PostgreSQL, Redis, MongoDB, SMTP, FTP, SSH, LDAP passwords.
+  - Filters out false positives: code comments, function definitions, framework boilerplate, documentation phrases.
+  - Excludes noisy directories: `vendor/`, `node_modules/`, `doc/`, `test/`, `cache/`, `logs/`.
   - Highlights matches for better readability.
-  - Only displays filenames and content when matches are found.
 - **SSH Private Key Search**:
   - Searches common directories like `/root`, `/home`, and `/etc/ssh` for files containing ssh private keys.
   - Highlights private keys in the results for better visibility.
